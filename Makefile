@@ -6,6 +6,7 @@ help:
 	@echo "  make lint      - ruff check"
 	@echo "  make test      - pytest"
 	@echo "  make ingest    - download + parse + chunk SEC filings"
+	@echo "  make index     - embed catalog chunks into Qdrant"
 
 install:
 	uv sync --extra dev
@@ -18,3 +19,6 @@ test:
 
 ingest:
 	uv run python scripts/ingest.py
+
+index:
+	uv run python scripts/index.py

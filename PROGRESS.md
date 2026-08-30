@@ -5,6 +5,41 @@ Every run must append a new entry at the top (most recent first).
 
 ---
 
+## Iteration 2 — 2026-08-30 14:01 IST
+
+**Completed**
+- Started Week 1 Days 3–4 indexing + core retrieval (working increment, no live APIs required):
+  - `src/fintruth/indexing/embedder.py` — `HashEmbedder` + `build_embedder` factory (deterministic offline default)
+  - `src/fintruth/indexing/qdrant_store.py` — `InMemoryVectorStore`, optional `QdrantVectorStore`, `index_payloads`
+  - `src/fintruth/retrieval/filters.py` — ticker / form / section / date-range filters
+  - `src/fintruth/retrieval/hybrid.py` — sparse BM25-ish index + dense kNN + Reciprocal Rank Fusion
+  - `src/fintruth/ingestion/catalog.py` — `iter_chunk_payloads()` for the indexer
+  - `scripts/index.py` — CLI that reads the SQLite catalog and upserts embeddings
+  - `tests/test_hybrid_retrieval.py` — offline smoke tests (deterministic embed + ticker/section filters)
+- Config: `embedding_model=hash-local`, `embedding_dim`, `qdrant_in_memory`, retrieve_k knobs
+- `qdrant-client` added to core deps; Makefile `index` target
+
+**Current Status**
+- Week 1 Days 1–2: ingestion pipeline implemented (still not live-run against SEC)
+- Week 1 Days 3–4: embed + store + hybrid retrieve **skeleton implemented and tested offline**; grounded generation prompt + citation extraction **not started**
+
+**Next Iteration Should Pick Up**
+1. `src/fintruth/generation/prompts.py` + `generation/chain.py` — grounded answer prompt, citation parse, refusal stub
+2. Tiny CLI or notebook: question → hybrid retrieve → print chunks (and later LLM answer)
+3. Optional: Voyage/OpenAI embedder path behind the existing factory when keys exist
+4. Harden parser on a real 10-K heading variants when live ingest is available
+
+**Blockers / Notes**
+- Live ingest still needs a valid `SEC_USER_AGENT` and network to EDGAR
+- Default embedder is hash-local (fine for wiring tests; replace before real eval)
+- Qdrant server is optional (`QDRANT_IN_MEMORY=true` uses `:memory:`)
+- No eval metrics yet
+
+**Eval metrics**
+- n/a
+
+---
+
 ## Iteration 1 — 2026-08-30 13:20 IST
 
 **Completed**

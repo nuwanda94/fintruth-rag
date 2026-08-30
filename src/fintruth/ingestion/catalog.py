@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from collections.abc import Iterator
 from pathlib import Path
 
 from fintruth.config import Settings, get_settings
@@ -100,6 +101,12 @@ class Catalog:
             rows,
         )
         self._conn.commit()
+
+    def iter_chunk_payloads(self) -> Iterator[dict]:
+        """Yield stored Qdrant-ready payloads for indexing."""
+        rows = self._conn.execute("SELECT payload_json FROM chunks ORDER BY chunk_id")
+        for row in rows:
+            yield json.loads(row["payload_json"])
 
     def filing_count(self) -> int:
         row = self._conn.execute("SELECT COUNT(*) AS n FROM filings").fetchone()

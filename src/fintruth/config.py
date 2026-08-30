@@ -24,13 +24,15 @@ class Settings(BaseSettings):
 
     voyage_api_key: str = ""
     openai_api_key: str = ""
-    embedding_model: str = "voyage-finance-2"
+    embedding_model: str = "hash-local"
+    embedding_dim: int = 256
 
     cohere_api_key: str = ""
 
     qdrant_url: str = "http://localhost:6333"
     qdrant_api_key: str = ""
     qdrant_collection: str = "fintruth_chunks"
+    qdrant_in_memory: bool = True
 
     sec_user_agent: str = "FinTruthRAG contact@example.com"
     catalog_db_path: Path = Field(default=REPO_ROOT / "data" / "catalog.db")
@@ -60,6 +62,11 @@ class Settings(BaseSettings):
     # Chunking defaults (refined after first failure analysis).
     chunk_tokens: int = 512
     chunk_overlap_tokens: int = 64
+
+    # Retrieval defaults.
+    retrieve_dense_k: int = 24
+    retrieve_sparse_k: int = 24
+    retrieve_final_k: int = 8
 
 
 def get_settings() -> Settings:
