@@ -70,7 +70,7 @@ class GroundedAnswer:
         """Render a Sources footer from parsed citations."""
         if not self.citations:
             return ""
-        lines = ["Sources:"] + [c.format_line() for c in self.citations]
+        lines = ["Sources:"] + [c.format_line() for c in citations]
         return "\n".join(lines)
 
 
@@ -182,6 +182,54 @@ def _evidence_mentions_year(chunks: list[RetrievedChunk], years: list[str]) -> b
     return any(year in blob for year in years)
 
 
+def missing_cited_tickers(question: str, citations: list[Citation]) -> list[str]:
+    """Named issuers that do not appear in the citation set.
+
+    Single-ticker questions only require retrieve-payload coverage (handled in
+    ``should_refuse``). Comparison questions must *cite* every named ticker so
+    a one-sided extract cannot look like a contrast.
+    """
+    wanted = mentioned_tickers(question)
+    if len(wanted) < 2:
+        return []
+    cited = {c.ticker.upper() for c in citations if c.ticker}
+    return [tkr for tkr in wanted if tkr not in cited]
+
+
+def select_quote_indices(
+    question: str,
+    chunks: list[RetrievedChunk],
+    *,
+    limit: int = 3,
+) -> list[int]:
+    """Pick overlapping snippets, covering named tickers before rank order."""
+    candidates = [
+        i
+        for i, chunk in enumerate(chunks, start=1)
+        if _overlap_count(question, chunk.text) >= DEFAULT_MIN_OVERLAP
+    ]
+    if not candidates:
+        return []
+    wanted = mentioned_tickers(question)
+    if len(wanted) < 2:
+        return candidates[:limit]
+    picked: list[int] = []
+    covered: set[str] = set()
+    for i in candidates:
+        ticker = str(chunks[i - 1].payload.get("ticker", "")).upper()
+        if ticker in wanted and ticker not in covered:
+            picked.append(i)
+            covered.add(ticker)
+            if len(picked) >= limit:
+                return picked
+    for i in candidates:
+        if i not in picked:
+            picked.append(i)
+            if len(picked) >= limit:
+                break
+    return picked
+
+
 def should_refuse(
     chunks: list[RetrievedChunk],
     question: str,
@@ -210,47 +258,44 @@ def should_refuse(
     return None
 
 
+def _refuse(question: str, chunks: list[RetrievedChunk], reason: str, mode: str) -> GroundedAnswer:
+    return GroundedAnswer(
+        question=question,
+        answer=f"{REFUSAL_PREFIX} {reason}",
+        refused=True,
+        refusal_reason=reason,
+        citations=[],
+        chunks=chunks,
+        mode=mode,
+    )
+
+
 def extractive_answer(question: str, chunks: list[RetrievedChunk]) -> GroundedAnswer:
     """Offline grounded path: quote supporting snippets with [n] citations."""
     reason = should_refuse(chunks, question)
     if reason:
-        text = f"{REFUSAL_PREFIX} {reason}"
-        return GroundedAnswer(
-            question=question,
-            answer=text,
-            refused=True,
-            refusal_reason=reason,
-            citations=[],
-            chunks=chunks,
-            mode="extractive",
-        )
+        return _refuse(question, chunks, reason, "extractive")
+
+    used = select_quote_indices(question, chunks, limit=3)
+    if not used:
+        return _refuse(question, chunks, "no overlapping evidence after filtering", "extractive")
 
     lines: list[str] = []
-    used: list[int] = []
-    for i, chunk in enumerate(chunks, start=1):
-        if _overlap_count(question, chunk.text) < DEFAULT_MIN_OVERLAP:
-            continue
-        snippet = chunk.text.strip()
+    for i in used:
+        snippet = chunks[i - 1].text.strip()
         if len(snippet) > 320:
             snippet = snippet[:317] + "..."
         lines.append(f"{snippet} [{i}]")
-        used.append(i)
-        if len(used) >= 3:
-            break
-    if not lines:
-        reason = "no overlapping evidence after filtering"
-        text = f"{REFUSAL_PREFIX} {reason}"
-        return GroundedAnswer(
-            question=question,
-            answer=text,
-            refused=True,
-            refusal_reason=reason,
-            citations=[],
-            chunks=chunks,
-            mode="extractive",
-        )
     body = "Based on the retrieved SEC excerpts:\n" + "\n".join(f"- {line}" for line in lines)
     cites = parse_citations(body, chunks)
+    missing = missing_cited_tickers(question, cites)
+    if missing:
+        return _refuse(
+            question,
+            chunks,
+            "citations omit ticker(s) " + ", ".join(missing),
+            "extractive",
+        )
     answer = attach_sources(body, cites)
     return GroundedAnswer(
         question=question,
@@ -309,16 +354,7 @@ def _finalize_llm_answer(
     """Apply citation + refusal gates to a model completion."""
     pre = should_refuse(chunks, question)
     if pre:
-        text = f"{REFUSAL_PREFIX} {pre}"
-        return GroundedAnswer(
-            question=question,
-            answer=text,
-            refused=True,
-            refusal_reason=pre,
-            citations=[],
-            chunks=chunks,
-            mode="llm",
-        )
+        return _refuse(question, chunks, pre, "llm")
     refused, answer, reason, cites = parse_model_output(model_text, chunks)
     if refused:
         return GroundedAnswer(
@@ -331,16 +367,14 @@ def _finalize_llm_answer(
             mode="llm",
         )
     if not cites:
-        reason = "model answer lacked citations"
-        text = f"{REFUSAL_PREFIX} {reason}"
-        return GroundedAnswer(
-            question=question,
-            answer=text,
-            refused=True,
-            refusal_reason=reason,
-            citations=[],
-            chunks=chunks,
-            mode="llm",
+        return _refuse(question, chunks, "model answer lacked citations", "llm")
+    missing = missing_cited_tickers(question, cites)
+    if missing:
+        return _refuse(
+            question,
+            chunks,
+            "citations omit ticker(s) " + ", ".join(missing),
+            "llm",
         )
     answer = attach_sources(answer, cites)
     return GroundedAnswer(
