@@ -70,7 +70,7 @@ class GroundedAnswer:
         """Render a Sources footer from parsed citations."""
         if not self.citations:
             return ""
-        lines = ["Sources:"] + [c.format_line() for c in citations]
+        lines = ["Sources:"] + [c.format_line() for c in self.citations]
         return "\n".join(lines)
 
 
