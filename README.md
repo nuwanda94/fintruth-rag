@@ -28,10 +28,10 @@ Ship a focused, deeply understood, measurable system demonstrating:
 
 ## Tech Stack
 - Python 3.11+ / uv
-- LangChain + minimal LangGraph
+- LangChain + minimal LangGraph (optional extra; default graph is a typed state machine)
 - Qdrant (hybrid + filtering)
 - Embeddings: voyage-finance-2 or text-embedding-3-large / BGE (hash-local offline default)
-- Reranker: Cohere or BGE-reranker
+- Reranker: Cohere or BGE-reranker (lexical stand-in offline)
 - LLM: xAI Grok API (primary); extractive fallback without keys
 - Ingestion: edgartools + BeautifulSoup/lxml
 - Eval: custom refusal/citation/keyword checks (RAGAS later)
@@ -51,10 +51,15 @@ uv run pytest -q
 uv run python scripts/ask.py --demo "What competition risks does Apple disclose?"
 # or: make ask
 
-# seeded eval set (18 questions) against the demo corpus
+# seeded eval set against the demo corpus
 uv run python scripts/run_eval.py --demo
 # or: make eval
 uv run python scripts/create_eval_set.py   # list items
+
+# evidence UI (retrieve → grade → generate|refuse)
+uv sync --extra ui
+uv run --extra ui streamlit run src/fintruth/ui/app.py
+# or: make ui
 ```
 
 ## Live corpus (needs `SEC_USER_AGENT` in `.env`)
