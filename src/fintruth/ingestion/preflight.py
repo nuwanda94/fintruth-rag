@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 
 from fintruth.config import Settings, get_settings
-
-logger = logging.getLogger(__name__)
 
 PLACEHOLDER_MARKERS = (
     "contact@example.com",
