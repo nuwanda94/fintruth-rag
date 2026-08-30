@@ -5,6 +5,41 @@ Every run must append a new entry at the top (most recent first).
 
 ---
 
+## Iteration 4 — 2026-08-30 16:01 IST
+
+**Completed**
+- Week 1 Day 5 thin eval + README stabilization:
+  - `evals/questions.jsonl` — 18 items (easy/hard/multi-ticker + explicit refusal cases)
+  - `src/fintruth/eval/dataset.py` — JSONL loader
+  - `src/fintruth/eval/metrics.py` — refusal / citation / keyword / ticker checks
+  - `src/fintruth/eval/runner.py` — catalog-or-demo retrieve → generate → `evals/results/`
+  - `scripts/run_eval.py`, `scripts/create_eval_set.py`
+  - `tests/test_eval.py` — floor size, refusal gold, demo run smoke
+  - README run instructions + Makefile `eval` / `questions` targets
+
+**Current Status**
+- Week 1 Days 1–2: ingestion pipeline implemented (not live-run against SEC)
+- Week 1 Days 3–4: embed + hybrid retrieve + grounded extractive generation **done offline**
+- Week 1 Day 5: eval set + runner + README **implemented offline**; live traces / RAGAS not started
+- Week 2 not started (reranker, stronger refusal, 30–40 questions)
+
+**Next Iteration Should Pick Up**
+1. Week 2 Days 1–2: `src/fintruth/retrieval/reranker.py` + wire into hybrid retrieve
+2. Optional: call xAI Grok from `generate_answer` when `XAI_API_KEY` is set
+3. Expand eval set toward 30–40 after live ingest; persist first `evals/results/` numbers from a real catalog
+4. Smoke live ingest when `SEC_USER_AGENT` + network are available
+
+**Blockers / Notes**
+- Demo fixture is intentionally small so metrics on `--demo` are wiring scores, not quality claims
+- Hash embedder still used; replace before real eval quality claims
+- Live ingest still needs a valid `SEC_USER_AGENT` and EDGAR access
+- `evals/results/*.json` from local runs are gitignored via empty dir + latest written at runtime
+
+**Eval metrics**
+- Harness ready; no live-catalog numbers yet. Demo composite expected > 0.5 in `tests/test_eval.py`.
+
+---
+
 ## Iteration 3 — 2026-08-30 15:00 IST
 
 **Completed**
