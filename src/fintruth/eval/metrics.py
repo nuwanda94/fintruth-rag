@@ -6,7 +6,8 @@ import re
 from dataclasses import dataclass
 
 from fintruth.eval.dataset import EvalQuestion
-from fintruth.generation.chain import GroundedAnswer
+from fintruth.generation.chain import Citation, GroundedAnswer
+from fintruth.retrieval.hybrid import RetrievedChunk
 
 # Captures 201, 1,234.5, 12%, $201 — used for numerical faithfulness.
 _NUMBER = re.compile(r"(?<!\w)(?:\$)?(\d{1,3}(?:,\d{3})*(?:\.\d+)?|\d+(?:\.\d+)?)%?(?!\w)")
@@ -43,11 +44,28 @@ def extract_numbers(text: str) -> set[str]:
     return {normalize_number(m.group(1)) for m in _NUMBER.finditer(text or "")}
 
 
+def resolve_cited_chunk(result: GroundedAnswer, cite: Citation) -> RetrievedChunk | None:
+    """Map a citation onto a retrieve hit by stable chunk_id, then index.
+
+    Prose markers stay 1-based list positions, but rerank can reorder the
+    pool after parse. Keyword / numerical checks must follow ``chunk_id``
+    so ``[1]`` after a shuffle does not silently score a different span.
+    """
+    if cite.chunk_id:
+        for chunk in result.chunks:
+            if chunk.chunk_id == cite.chunk_id:
+                return chunk
+    if 1 <= cite.index <= len(result.chunks):
+        return result.chunks[cite.index - 1]
+    return None
+
+
 def _cited_chunk_texts(result: GroundedAnswer) -> str:
     texts: list[str] = []
     for cite in result.citations:
-        if 1 <= cite.index <= len(result.chunks):
-            texts.append(result.chunks[cite.index - 1].text)
+        chunk = resolve_cited_chunk(result, cite)
+        if chunk is not None:
+            texts.append(chunk.text)
     return " ".join(texts)
 
 
@@ -60,9 +78,9 @@ def _cited_texts_by_ticker(result: GroundedAnswer) -> dict[str, str]:
     """Cited span text keyed by citation ticker (payload fallback)."""
     buckets: dict[str, list[str]] = {}
     for cite in result.citations:
-        if not (1 <= cite.index <= len(result.chunks)):
+        chunk = resolve_cited_chunk(result, cite)
+        if chunk is None:
             continue
-        chunk = result.chunks[cite.index - 1]
         ticker = (cite.ticker or str(chunk.payload.get("ticker", ""))).upper()
         if not ticker:
             continue
@@ -70,11 +88,18 @@ def _cited_texts_by_ticker(result: GroundedAnswer) -> dict[str, str]:
     return {ticker: " ".join(texts).lower() for ticker, texts in buckets.items()}
 
 
-def _citation_indexes_valid(result: GroundedAnswer) -> bool:
-    n = len(result.chunks)
+def _citations_resolve(result: GroundedAnswer) -> bool:
+    """Every citation must land on a retrieve hit (id first, then index)."""
     if not result.citations:
         return True
-    return all(1 <= c.index <= n for c in result.citations)
+    known_ids = {c.chunk_id for c in result.chunks}
+    for cite in result.citations:
+        if resolve_cited_chunk(result, cite) is None:
+            return False
+        # Stale id after a pool swap is a support failure even if index is in range.
+        if cite.chunk_id and cite.chunk_id not in known_ids:
+            return False
+    return True
 
 
 def score_keywords(question: EvalQuestion, result: GroundedAnswer) -> bool:
@@ -130,12 +155,12 @@ def score_numerical(question: EvalQuestion, result: GroundedAnswer) -> bool:
 
 
 def score_citation_support(question: EvalQuestion, result: GroundedAnswer) -> bool:
-    """Citations must be in-range and ticker-aligned with the question."""
+    """Citations must resolve to retrieve hits and stay ticker-aligned."""
     if question.expect_refuse:
         return True
     if question.must_cite and not result.citations:
         return False
-    if not _citation_indexes_valid(result):
+    if not _citations_resolve(result):
         return False
     wanted = {t.upper() for t in question.tickers}
     if not wanted or not result.citations:
