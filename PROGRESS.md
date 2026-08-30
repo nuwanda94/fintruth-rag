@@ -5,112 +5,68 @@ Every run must append a new entry at the top (most recent first).
 
 ---
 
-## Iteration 9 — 2026-08-30 21:10 IST
+## Iteration 10 — 2026-08-30 22:00 IST
 
 **Completed**
-- Week 3 Days 3–4 evaluation depth + interview docs (offline-first):
-  - `src/fintruth/eval/metrics.py` — `extract_numbers`, `score_numerical`, `score_citation_support`; ItemScore now includes `numerical_ok` + `citation_support_ok`; summary adds `numerical_accuracy` and `citation_support`
-  - `src/fintruth/eval/dataset.py` — optional `expected_numbers` on `EvalQuestion`
-  - `src/fintruth/eval/ablation.py` — dense vs hybrid vs hybrid+rerank keyword-in-top-k
-  - `src/fintruth/eval/runner.py` — demo AAPL MD&A chunk now carries `$201 billion`; `run_eval(..., with_ablation=True)` persists ablation next to scores
-  - `evals/questions.jsonl` — q002 gold number `201`
-  - `tests/test_eval.py` — numerical faithfulness, foreign-ticker citation reject, `latest.json` write to tmp, ablation arms
-  - `docs/limitations.md` and `docs/exceptional_work.md` filled (no longer stubs)
-  - README Streamlit walkthrough + metric description; `scripts/run_eval.py --no-ablation`
+- Week 3 Day 5 sharp-edge + packaging pass (offline-first):
+  - Checked in `evals/results/latest.json` from a live `run_eval(demo=True)` (n=34, composite ≈ 0.990; residual miss `q030`)
+  - `.gitignore` keeps `evals/results/latest.json` while ignoring stamped `run_*.json`
+  - `GraphRun.latency_ms`; Streamlit shows retrieve ms + graph ms
+  - Issuer-aware refusal: company names map to tickers; missing issuer in hits → refuse
+  - `docs/walkthrough.md` 10–15 min rehearsal script
+  - Tests: graph latency, snapshot contract, walkthrough, Tesla-name refuse
 
 **Current Status**
 - Week 1: foundation + offline end-to-end loop + thin eval **done**
 - Week 2: retrieval hardening + grounding/refusal + first-pass analysis **done offline**
 - Week 3 Days 1–2: graph + Streamlit **done offline**
-- Week 3 Days 3–4: custom numerical + citation-support checks + ablation helper + limitations/exceptional_work **done offline**
-- Week 3 Day 5: rehearsal / release tag **not started**
-- Live catalog ingest / RAGAS / published IR numbers **not started**
+- Week 3 Days 3–4: custom metrics + ablation + interview docs **done offline**
+- Week 3 Day 5: rehearsal script + checked-in demo results + latency UI + issuer refuse **done offline**
+- Interview-max offline package is complete
+- Live catalog ingest / RAGAS / published IR numbers / git release tag **not started**
 
 **Next Iteration Should Pick Up**
-1. Week 3 Day 5: sharp-edge pass — persist a checked-in `evals/results/latest.json` from `make eval --demo` if the workspace is writable; tag a clean release if desired
-2. Smoke live ingest when `SEC_USER_AGENT` + EDGAR are available
-3. Optional: latency display in Streamlit; do not add RAGAS or multi-hop tools (out of remaining interview-max buffer unless time remains)
+1. Smoke live ingest when `SEC_USER_AGENT` + EDGAR are available; regenerate `latest.json` from catalog if chunks exist
+2. Optional git tag `v0.1.0` / GitHub release (create-tag API not in this tool set)
+3. Rehearse `docs/walkthrough.md` against Streamlit; fix only script-breaking edges
+4. Do not add RAGAS, multi-hop tools, or Docker polish
 
 **Blockers / Notes**
-- Demo `$201 billion` is a fixture figure for the numerical contract, not an SEC-extracted fact
-- Ablation keyword-in-top-k on hash embeddings is a harness check, not a quality claim
-- Writing `evals/results/` in CI still depends on a writable checkout; tests use tmp_path
+- Demo snapshot residual miss: `q030` (FY2012 greater-China iPhone units) — expected given fixture coverage
+- Ablation arms all 1.0 on the tiny demo corpus; do not present as quality
+- `$201 billion` remains a harness figure
 
 **Eval metrics**
-- Question bank n=34 with one gold-number item (q002). Composite contract unchanged (`> 0.5`). New summary keys: `numerical_accuracy`, `citation_support`.
+- Checked-in demo run: n=34, refusal_accuracy=0.971, citation_accuracy=1.0, citation_support=1.0, keyword_hit_rate=1.0, ticker_hit_rate=1.0, numerical_accuracy=0.971, composite=0.990
+- Ablation keyword-in-top-k: dense=1.0, hybrid=1.0, hybrid+rerank=1.0 (fixture only)
+
+---
+
+## Iteration 9 — 2026-08-30 21:10 IST
+
+**Completed**
+- Week 3 Days 3–4 evaluation depth + interview docs (offline-first). See commit history for file-level detail.
+
+**Current Status**
+- Week 3 Day 5 was the next unfinished block at the time.
 
 ---
 
 ## Iteration 8 — 2026-08-30 20:01 IST
 
-**Completed**
-- Week 3 Days 1–2 minimal truth-seeking loop + evidence UI (offline-first):
-  - `src/fintruth/agent/graph.py` — `TruthSeekingGraph` retrieve → grade → generate|refuse; typed `AgentState` / `GraphRun`; optional `compile_langgraph` when the extra is installed
-  - `src/fintruth/ui/app.py` — Streamlit demo: answer, refusal banner, citations, expandable chunk scores/metadata, ticker/section/as-of filters over `DEMO_CORPUS`
-  - `tests/test_agent_graph.py` — generate path on Apple competition, refuse empty grade, ticker filter
-  - `docs/architecture.md` — graph node in the pipeline diagram
-  - Makefile `ui` target; `langgraph` added to the optional `index` extra
-
-**Current Status**
-- Week 1: foundation + offline end-to-end loop + thin eval **done**
-- Week 2: retrieval hardening + grounding/refusal + first-pass analysis **done offline**
-- Week 3 Days 1–2: graph + Streamlit **done offline** (LangGraph compile is optional, not the default test path)
-- Week 3 Days 3–4: custom numerical + citation accuracy, final ablation suite, polished limitations/exceptional_work **not started**
-- Live ablation numbers / RAGAS / catalog ingest **not started**
-
-**Next Iteration Should Pick Up**
-1. Week 3 Days 3–4: custom numerical + citation-accuracy checks; persist `evals/results/` when a writable checkout exists
-2. Fill `docs/limitations.md` and `docs/exceptional_work.md` (currently stubs)
-3. Polish README walkthrough for the Streamlit demo
-4. Smoke live ingest when `SEC_USER_AGENT` + EDGAR are available
-
-**Blockers / Notes**
-- Default graph is a typed state machine so pytest stays extra-free; `compile_langgraph` is the interview-aligned optional wrapper
-- UI imports Streamlit only inside `main()`; helpers are importable without the extra
-- Hash embedder / demo corpus still not quality claims
-
-**Eval metrics**
-- Question bank n=34. Demo composite contract unchanged. No new live-catalog numbers.
+See git history: graph + Streamlit evidence UI.
 
 ---
 
 ## Iteration 7 — 2026-08-30 19:05 IST
 
-**Completed**
-- Week 2 Day 5 analysis pass (no live catalog; docs grounded in code + demo eval):
-  - `docs/design_decisions.md` — D1–D9 (offline-first, section chunks, hybrid RRF, lexical reranker, as_of cutoff, extractive+gates, refusal-labeled eval, binary metrics, in-memory store) plus explicit OUT list
-  - `evals/failure_analysis.md` — F1–F8 from the 34-question bank vs `DEMO_CORPUS` (out-of-corpus, numerical-absent, notes-sparse, multi-ticker gaps, keyword drift, score-floor artifacts, extractive-not-synthesis, citation index identity)
-  - `docs/architecture.md` — first pipeline diagram matching current modules
-  - `tests/test_docs.py` — docs stay non-empty and mention demo failure IDs
-
-**Current Status**
-- Week 1: foundation + offline end-to-end loop + thin eval **done**
-- Week 2 Days 1–2: reranker + as-of + ablation helper **done offline**
-- Week 2 Days 3–4: grounding/refusal + 34-question set **done offline**
-- Week 2 Day 5: design_decisions + failure_analysis **first pass done** (demo-only evidence)
-- Week 3 Days 1–2: LangGraph + Streamlit **not started**
-- Live ablation numbers / RAGAS / `evals/results/*.json` from a real run **not started**
-
-**Next Iteration Should Pick Up**
-1. Week 3 Days 1–2: minimal LangGraph retrieve → grade → generate or refuse (`src/fintruth/agent/graph.py`)
-2. Streamlit evidence UI (`src/fintruth/ui/app.py`): answer, expandable chunks/scores/metadata, citations, refusal indicator
-3. Persist `evals/results/` from `make eval` when a writable checkout is available
-4. Smoke live ingest when `SEC_USER_AGENT` + EDGAR are available
-
-**Blockers / Notes**
-- Docs explicitly forbid treating hash-embedder demo ranks as quality claims
-- Grok path still optional; eval harness stays extractive
-- Live catalog numbers still blocked on ingest credentials
-
-**Eval metrics**
-- Question bank n=34. Demo composite contract unchanged (`> 0.5` in `tests/test_eval.py`). No new live-catalog numbers this iteration.
+See git history: design_decisions + failure_analysis.
 
 ---
 
 ## Iteration 6 — 2026-08-30 18:02 IST
 
-**Completed**
-- Week 2 Days 3–4 generation / refusal / eval-set expansion (offline-first). See git history for full text.
+See prior commit history; summary: grounding/refusal + eval-set expansion.
 
 ---
 
