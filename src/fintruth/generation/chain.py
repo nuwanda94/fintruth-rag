@@ -3,73 +3,56 @@
 Default path is extractive (no LLM) so the retrieve → answer loop works
 offline. When ``XAI_API_KEY`` is set, ``generate_answer`` may call Grok
 and then re-apply the same citation / refusal gates.
+
+Implementation is split across ``citations``, ``refuse``, ``units``, and
+``generate`` so each module stays reviewable.
 """
 
-from __future__ import annotations
-
-import json
-import re
-import urllib.error
-import urllib.request
-from dataclasses import dataclass, field
-
-from fintruth.config import Settings, get_settings
-from fintruth.generation.prompts import REFUSAL_PREFIX, build_messages
+from fintruth.generation.citations import (
+    Citation,
+    GroundedAnswer,
+    attach_sources,
+    format_citation_footer,
+    parse_citations,
+    parse_model_output,
+)
+from fintruth.generation.generate import (
+    complete_with_grok,
+    extractive_answer,
+    generate_answer,
+    prompt_for,
+)
+from fintruth.generation.refuse import (
+    DEFAULT_MIN_OVERLAP,
+    DEFAULT_MIN_SCORE,
+    asks_exact_figure,
+    mentioned_tickers,
+    missing_cited_tickers,
+    question_years,
+    select_quote_indices,
+    should_refuse,
+)
 from fintruth.generation.units import asks_unit_volume, evidence_has_unit_quantity
-from fintruth.retrieval.hybrid import RetrievedChunk
 
-_CITE = re.compile(r"\[(\d+)\]")
-_TOKEN = re.compile(r"[a-z0-9$%]+", re.I)
-_TICKER = re.compile(
-    r"\b(AAPL|MSFT|GOOGL|AMZN|META|NVDA|JPM|XOM|UNH|JNJ|TSLA|BRK)\b",
-    re.I,
-)
-_YEAR = re.compile(r"\b(?:fy|fiscal\s+)?((?:19|20)\d{2})\b", re.I)
-_EXACT_FACT = re.compile(
-    r"\b(exact|unit volume|units?|deliveries|how many)\b",
-    re.I,
-)
-
-DEFAULT_MIN_SCORE = 0.012
-DEFAULT_MIN_OVERLAP = 1
-
-XAI_CHAT_URL = "https://api.x.ai/v1/chat/completions"
-
-
-@dataclass(slots=True)
-class Citation:
-    """Pointer from an answer span back to a retrieved chunk."""
-
-    index: int
-    chunk_id: str
-    ticker: str
-    form: str
-    section: str
-    filing_date: str
-
-    def format_line(self) -> str:
-        """Interview-facing footnote line."""
-        return (
-            f"[{self.index}] {self.ticker} {self.form} {self.section} "
-            f"{self.filing_date} ({self.chunk_id})"
-        )
-
-
-@dataclass(slots=True)
-class GroundedAnswer:
-    """Structured generation result handed to CLI / later UI."""
-
-    question: str
-    answer: str
-    refused: bool
-    refusal_reason: str | None
-    citations: list[Citation] = field(default_factory=list)
-    chunks: list[RetrievedChunk] = field(default_factory=list)
-    mode: str = "extractive"
-
-    def sources_block(self) -> str:
-        """Render a Sources footer from parsed citations."""
-        if not self.citations:
-            return ""
-        lines = ["Sources:"] + [c.format_line() for c in self.citations]
-        return "\n".join(lines)
+__all__ = [
+    "Citation",
+    "DEFAULT_MIN_OVERLAP",
+    "DEFAULT_MIN_SCORE",
+    "GroundedAnswer",
+    "asks_exact_figure",
+    "asks_unit_volume",
+    "attach_sources",
+    "complete_with_grok",
+    "evidence_has_unit_quantity",
+    "extractive_answer",
+    "format_citation_footer",
+    "generate_answer",
+    "mentioned_tickers",
+    "missing_cited_tickers",
+    "parse_citations",
+    "parse_model_output",
+    "prompt_for",
+    "question_years",
+    "select_quote_indices",
+    "should_refuse",
+]
