@@ -12,6 +12,7 @@ help:
 	@echo "  make eval       - run seeded questions.jsonl (demo corpus if empty catalog)"
 	@echo "  make questions  - list seeded eval items"
 	@echo "  make ui         - Streamlit evidence demo (demo corpus)"
+	@echo "  make eval       writes evals/results/latest.json (demo snapshot is checked in)"
 
 install:
 	uv sync --extra dev

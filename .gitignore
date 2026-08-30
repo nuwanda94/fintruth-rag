@@ -30,9 +30,10 @@ data/processed/*
 data/*.db
 data/*.db-journal
 
-# Eval artifacts
+# Eval artifacts (keep the checked-in demo snapshot)
 evals/results/*
 !evals/results/.gitkeep
+!evals/results/latest.json
 
 # IDE / OS
 .idea/

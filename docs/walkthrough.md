@@ -1,0 +1,52 @@
+# 10–15 Minute Interview Walkthrough
+
+Rehearsal script for Week 3 Day 5. Demo corpus only unless ingest has run.
+
+## 0. Frame (60s)
+
+FinTruth is a *strictly grounded* SEC research assistant. Scope is 8–12 large-caps, MD&A + Risk Factors, hybrid retrieve + filters + rerank, extractive citations, and an explicit refuse path. Out of scope: multi-hop tools, XBRL, live news.
+
+## 1. Architecture (2 min)
+
+Ingest → section chunks → hybrid dense+sparse RRF → lexical rerank → grade → generate or refuse.
+
+Point at `docs/architecture.md`. Offline default is hash embeddings + `InMemoryVectorStore` so the loop is deterministic without keys.
+
+## 2. Live easy query (2 min)
+
+```bash
+make ask
+# or Streamlit: make ui
+```
+
+Ask: *What competition risks does Apple disclose?*
+
+Show: answer text, `[n]` citations, chunk scores, ticker/section/date, retrieve ms vs graph ms.
+
+## 3. Live hard / refuse query (2 min)
+
+Ask: *Did Tesla disclose Cybertruck unit deliveries in its latest 10-K?*
+
+Show the refusal banner. Explain grade gates (`should_refuse`) plus extractive generator still refusing if grade is optimistic.
+
+## 4. Eval + ablation (3 min)
+
+```bash
+make eval
+```
+
+Open `evals/results/latest.json`:
+
+- n=34 seeded items including out-of-corpus and one gold number (`q002` / `$201` fixture)
+- contract metrics: refusal, citation presence, citation ticker support, keyword, ticker, numerical
+- retrieval ablation arms: dense / hybrid / hybrid+rerank (keyword-in-top-k on the **demo** fixture — not IR quality)
+
+Name residual failure `q030` (FY2012 greater-China units not in corpus → should refuse; see `evals/failure_analysis.md`).
+
+## 5. Decisions and limits (2 min)
+
+Walk D1–D9 in `docs/design_decisions.md` and the first page of `docs/limitations.md`. Emphasize: hash embedder is wiring; demo `$201 billion` is a harness figure; Grok is optional.
+
+## 6. What more time buys (1 min)
+
+Live EDGAR catalog + voyage/Cohere + RAGAS on real filings; parent-document chunks; numerical unit parser. Do not promise multi-hop agents in this package.
