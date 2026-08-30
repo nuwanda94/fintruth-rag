@@ -1,7 +1,9 @@
 """Offline tests for the eval harness, numerical checks, and ablation."""
 
+import json
 from pathlib import Path
 
+from fintruth.config import REPO_ROOT
 from fintruth.eval.ablation import run_retrieval_ablation
 from fintruth.eval.dataset import EvalQuestion, load_questions
 from fintruth.eval.metrics import extract_numbers, score_item, summarize
@@ -164,3 +166,14 @@ def test_retrieval_ablation_has_three_arms() -> None:
     summary = run_retrieval_ablation([q], retriever)
     assert set(summary.arms) == {"dense", "hybrid", "hybrid+rerank"}
     assert summary.arms["hybrid"] == 1.0
+
+
+def test_checked_in_latest_results_snapshot() -> None:
+    path = REPO_ROOT / "evals" / "results" / "latest.json"
+    assert path.exists(), "commit evals/results/latest.json from make eval --demo"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert payload["corpus"] == "demo"
+    assert payload["summary"]["n"] >= 30
+    assert payload["summary"]["composite"] > 0.5
+    assert "numerical_accuracy" in payload["summary"]
+    assert payload.get("ablation", {}).get("arms")
