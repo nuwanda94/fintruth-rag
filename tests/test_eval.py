@@ -105,6 +105,69 @@ def test_citation_support_rejects_foreign_ticker() -> None:
     assert not score_item(q, result).citation_support_ok
 
 
+def test_keywords_ignore_uncited_retrieve_hits() -> None:
+    """A thin citation cannot pass because an uncited neighbor contains the gold word."""
+    q = EvalQuestion(
+        id="kw",
+        question="Compare Apple iPhone revenue with Microsoft Azure growth.",
+        tickers=["AAPL", "MSFT"],
+        must_cite=True,
+        keywords=["revenue", "azure"],
+        category="multi_ticker",
+    )
+    aapl = _chunk("AAPL:mda", "Apple services mix shifted.", "AAPL")
+    msft = _chunk("MSFT:mda", "Azure revenue continued to grow.", "MSFT")
+    one_sided = GroundedAnswer(
+        question=q.question,
+        answer="Services mix shifted [1]\nAzure revenue continued to grow [2]",
+        refused=False,
+        refusal_reason=None,
+        citations=[
+            Citation(1, aapl.chunk_id, "AAPL", "10-K", "mda", "2024-11-01"),
+            Citation(2, msft.chunk_id, "MSFT", "10-K", "mda", "2024-11-01"),
+        ],
+        chunks=[aapl, msft],
+    )
+    # AAPL cite lacks "revenue"; MSFT cite has both words — AND still fails.
+    assert not score_item(q, one_sided).keyword_ok
+
+    aapl_ok = _chunk("AAPL:mda2", "iPhone revenue increased year over year.", "AAPL")
+    both = GroundedAnswer(
+        question=q.question,
+        answer="iPhone revenue increased [1]\nAzure revenue continued to grow [2]",
+        refused=False,
+        refusal_reason=None,
+        citations=[
+            Citation(1, aapl_ok.chunk_id, "AAPL", "10-K", "mda", "2024-11-01"),
+            Citation(2, msft.chunk_id, "MSFT", "10-K", "mda", "2024-11-01"),
+        ],
+        chunks=[aapl_ok, msft],
+    )
+    assert score_item(q, both).keyword_ok
+
+
+def test_keywords_do_not_use_uncited_pool() -> None:
+    q = EvalQuestion(
+        id="pool",
+        question="What competition risks does Apple disclose?",
+        tickers=["AAPL"],
+        must_cite=True,
+        keywords=["competition"],
+        category="risk",
+    )
+    cited = _chunk("AAPL:mda", "iPhone revenue increased.", "AAPL")
+    uncited = _chunk("AAPL:risk", "Apple faces intense competition.", "AAPL", section="risk_factors")
+    result = GroundedAnswer(
+        question=q.question,
+        answer="iPhone revenue increased [1]",
+        refused=False,
+        refusal_reason=None,
+        citations=[Citation(1, cited.chunk_id, "AAPL", "10-K", "mda", "2024-11-01")],
+        chunks=[cited, uncited],
+    )
+    assert not score_item(q, result).keyword_ok
+
+
 def test_demo_eval_runs_and_refuses_out_of_corpus() -> None:
     questions = load_questions()
     run = run_eval(questions=questions, demo=True, write=False, with_ablation=False)
@@ -122,6 +185,9 @@ def test_demo_eval_runs_and_refuses_out_of_corpus() -> None:
     assert by_id["q001"]["citations"]
     assert "Sources:" in by_id["q001"]["answer"]
     assert by_id["q002"]["score"]["numerical_ok"] is True
+    assert by_id["q013"]["score"]["keyword_ok"] is True
+    assert by_id["q025"]["score"]["keyword_ok"] is True
+    assert by_id["q032"]["score"]["keyword_ok"] is True
 
 
 def test_run_eval_writes_latest_json(tmp_path: Path) -> None:

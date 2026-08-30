@@ -25,6 +25,11 @@ Generation is blocked when any of these fire:
 5. Exact-figure question ("exact" / "unit volume" / "units" / "deliveries") names a year that does **not** appear in chunk text (filing_date alone is not enough)
 6. Multi-ticker question whose citations omit a named issuer (extractive selection covers issuers first; LLM answers that cite only one side are refused)
 
+Eval scoring is separate from generation gates. Keyword checks read the
+answer plus **cited** chunk text only; multi-ticker items with two or more
+gold keywords require every keyword (AND) so an uncited neighbor cannot
+complete a contrast.
+
 Gate 5 is why `q016` / `q030` refuse instead of quoting FY2024 iPhone revenue.
 Gate 6 is why a comparison cannot quote only AAPL when the question also names MSFT.
 

@@ -20,6 +20,7 @@ Can prove:
   (`q016` Q3 2019, `q030` FY2012) instead of quoting nearby iPhone revenue.
 - Comparison answers cite every named issuer (`select_quote_indices` +
   `missing_cited_tickers`).
+- Keyword checks use the answer + **cited** spans only (iteration 14).
 
 Cannot prove:
 
@@ -68,7 +69,7 @@ custom numerical check (gold figure or refuse) plus a future unit parser.
 After live ingest this becomes a real parser/chunker test. If notes are
 still empty, the correct behavior remains refuse, not inventing "none".
 
-### F4. Multi-ticker coverage gaps (citation-set gate — working offline)
+### F4. Multi-ticker coverage gaps (citation-set + cited-keyword gates — working offline)
 
 | IDs | Symptom | Root cause | Status |
 |-----|---------|------------|--------|
@@ -82,8 +83,10 @@ in the **citation set**, not just the retrieve pool. Extractive selection
 picks one overlapping chunk per named issuer before filling remaining
 slots by rank. An LLM completion that only cites one side is refused.
 
-Residual: keyword metric still uses answer **or** chunk haystack, so a
-thin-but-cited contrast can look complete on keywords.
+Iteration 14: `score_keywords` reads answer + cited chunk text only.
+Multi-ticker items with ≥2 gold keywords use AND so an uncited neighbor
+cannot complete the contrast. Residual: keywords are still lexical, not
+per-issuer aligned ("revenue" may live on only one side of q013).
 
 ### F5. Keyword / section mismatch
 
@@ -123,7 +126,8 @@ span. Do not grade citation accuracy by index alone in later evals.
    as retrieve / filter / refuse-policy / generation.
 3. Gold numeric spans for live q016/q030-class items still need a unit parser.
 4. ~~Require all named tickers in the citation set~~ **done (iteration 13)**.
-5. Do not raise chunk size or swap embedders based on demo scores.
+5. ~~Keyword metric must not use the uncited retrieve pool~~ **done (iteration 14)**.
+6. Do not raise chunk size or swap embedders based on demo scores.
 
 ## 4. Demo metric contract (regression guard)
 
@@ -134,6 +138,7 @@ From `tests/test_eval.py`:
 - demo composite `> 0.5`
 - q015, q029, and q030 refuse
 - q001 answers with citations and a `Sources:` footer
+- q013 / q025 / q032 remain keyword-ok on cited spans
 
 If composite collapses below 0.5, the refuse policy or demo corpus
 regressed. Do not "fix" it by deleting hard questions.

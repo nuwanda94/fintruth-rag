@@ -43,10 +43,17 @@ def extract_numbers(text: str) -> set[str]:
     return {normalize_number(m.group(1)) for m in _NUMBER.finditer(text or "")}
 
 
-def _haystack(result: GroundedAnswer) -> str:
-    parts = [result.answer]
-    parts.extend(c.text for c in result.chunks)
-    return " ".join(parts).lower()
+def _cited_chunk_texts(result: GroundedAnswer) -> str:
+    texts: list[str] = []
+    for cite in result.citations:
+        if 1 <= cite.index <= len(result.chunks):
+            texts.append(result.chunks[cite.index - 1].text)
+    return " ".join(texts)
+
+
+def _cited_haystack(result: GroundedAnswer) -> str:
+    """Answer + *cited* chunks only — uncited retrieve hits cannot inflate keywords."""
+    return " ".join([result.answer, _cited_chunk_texts(result)]).lower()
 
 
 def _citation_indexes_valid(result: GroundedAnswer) -> bool:
@@ -56,12 +63,19 @@ def _citation_indexes_valid(result: GroundedAnswer) -> bool:
     return all(1 <= c.index <= n for c in result.citations)
 
 
-def _cited_chunk_texts(result: GroundedAnswer) -> str:
-    texts: list[str] = []
-    for cite in result.citations:
-        if 1 <= cite.index <= len(result.chunks):
-            texts.append(result.chunks[cite.index - 1].text)
-    return " ".join(texts)
+def score_keywords(question: EvalQuestion, result: GroundedAnswer) -> bool:
+    """Keywords must appear in the answer or the cited spans.
+
+    Multi-ticker items with two or more gold keywords require *all* of them so a
+    one-sided contrast cannot pass on a word that only lives in an uncited hit.
+    """
+    if question.expect_refuse or not question.keywords:
+        return True
+    blob = _cited_haystack(result)
+    needles = [k.lower() for k in question.keywords]
+    if question.category == "multi_ticker" and len(needles) >= 2:
+        return all(k in blob for k in needles)
+    return any(k in blob for k in needles)
 
 
 def score_numerical(question: EvalQuestion, result: GroundedAnswer) -> bool:
@@ -114,8 +128,7 @@ def score_item(question: EvalQuestion, result: GroundedAnswer) -> ItemScore:
         ticker_ok = True
     else:
         citation_ok = (not question.must_cite) or bool(result.citations)
-        blob = _haystack(result)
-        keyword_ok = not question.keywords or any(k in blob for k in question.keywords)
+        keyword_ok = score_keywords(question, result)
         cited_tickers = {c.ticker.upper() for c in result.citations if c.ticker}
         hit_tickers = {str(c.payload.get("ticker", "")).upper() for c in result.chunks}
         wanted = {t.upper() for t in question.tickers}

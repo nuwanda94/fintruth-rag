@@ -4,6 +4,14 @@ Packaging notes for interview-max FinTruth RAG. Git tag `v0.1.0` is optional
 (create-tag is not in the connected GitHub tool set); this file is the source
 of truth for what that tag should mean.
 
+## 0.1.2 — 2026-08-31
+
+Eval keyword metric no longer credits the uncited retrieve pool.
+
+- `score_keywords` uses answer + cited chunk text only
+- Multi-ticker items with ≥2 gold keywords require all of them (AND)
+- Unit tests cover one-sided / uncited-pool false positives
+
 ## 0.1.1 — 2026-08-31
 
 Offline sharp-edge on comparison questions.
