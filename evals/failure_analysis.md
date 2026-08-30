@@ -16,6 +16,8 @@ Can prove:
   emit `Sources:` (`q001` AAPL competition is the smoke test).
 - Multi-ticker questions refuse when one named issuer is missing from
   the hit list (`should_refuse` missing-ticker rule).
+- Exact-figure questions that name a year missing from chunk text refuse
+  (`q016` Q3 2019, `q030` FY2012) instead of quoting nearby iPhone revenue.
 
 Cannot prove:
 
@@ -39,17 +41,21 @@ of refusal/citation checks. That floor is intentional.
 Keep these even after live ingest: TSLA/BRK stay outside the 10-name
 universe unless the ticker list changes.
 
-### F2. Numerical facts that are not in any chunk (expected refuse)
+### F2. Numerical facts that are not in any chunk (expected refuse — working after period gate)
 
 | IDs | Symptom | Root cause | Status |
 |-----|---------|------------|--------|
-| q016 | AAPL Q3 2019 Greater China iPhone units | Demo has no 10-Q and no units | Should refuse |
-| q030 | AAPL FY2012 Greater China units | Outside year window + not in text | Should refuse |
+| q016 | AAPL Q3 2019 Greater China iPhone units | Demo has no 10-Q and no units | Refuse: year 2019 absent from text |
+| q030 | AAPL FY2012 Greater China units | Outside year window + not in text | Refuse: year 2012 absent from text |
 
-Risk after live ingest: a nearby MD&A sentence about "iPhone revenue"
-may pass term-overlap and answer without the number. Mitigation slated
-for Week 3 custom numerical checks (answer must contain the gold figure
-or refuse).
+Iteration 11 residual: term-overlap let the FY2024 `$201 billion` MD&A
+chunk answer q030. Iteration 12 `should_refuse` requires exact-figure
+questions to see the asked year in chunk **text** (filing_date is not
+enough). Qualitative MD&A (`q002`) is unchanged.
+
+Risk after live ingest: a nearby sentence that happens to contain both
+"2012" and a different figure could still pass. Mitigation remains the
+custom numerical check (gold figure or refuse) plus a future unit parser.
 
 ### F3. Notes / goodwill sparse section (expected refuse on demo)
 
@@ -111,7 +117,7 @@ span. Do not grade citation accuracy by index alone in later evals.
    checkout runs the harness (numbers will still be demo until ingest).
 2. After first live catalog: re-run the 34 and tag each residual miss
    as retrieve / filter / refuse-policy / generation.
-3. Add gold numeric spans for q016/q030-class items (Week 3 metrics).
+3. Gold numeric spans for live q016/q030-class items still need a unit parser.
 4. Consider requiring **all** named tickers in the citation set, not just
    retrieve payloads, for multi-ticker items.
 5. Do not raise chunk size or swap embedders based on demo scores.
@@ -123,7 +129,7 @@ From `tests/test_eval.py`:
 - `n >= 30` questions loaded
 - at least one `expect_refuse` and one `out_of_corpus` / `multi_ticker`
 - demo composite `> 0.5`
-- q015 and q029 refuse
+- q015, q029, and q030 refuse
 - q001 answers with citations and a `Sources:` footer
 
 If composite collapses below 0.5, the refuse policy or demo corpus

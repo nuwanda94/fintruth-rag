@@ -84,7 +84,7 @@ say as of date X". Mixing a later 10-K into that answer is a silent lie.
 `urllib`) is optional and must still pass:
 
 1. `should_refuse` (empty hits, low RRF score, no term overlap, missing
-   ticker on multi-ticker questions)
+   ticker on multi-ticker questions, exact-figure year missing from text)
 2. model-emitted `REFUSAL:` prefix
 3. at least one valid `[n]` citation, else refuse
 
@@ -128,6 +128,24 @@ shape as the future Qdrant client. `qdrant_in_memory=True` by default.
 
 **Why.** Hybrid + payload filters can be unit-tested in CI. Persistence
 and server ops are out of interview-max until a real catalog exists.
+
+## D10. Exact-figure questions need the asked year in chunk text
+
+**Choice.** If the question looks like an exact count (`exact`, `unit volume`,
+`units`, `deliveries`, `how many`) and names a year (`FY2012`, `2019`),
+refuse unless that year string appears in retrieved *text*. Do not treat
+`filing_date` as period evidence.
+
+**Alternatives.** Always answer from the nearest iPhone/MD&A snippet;
+parse XBRL facts; require gold numbers in every numerical item.
+
+**Why.** Iteration 11 demo miss `q030` quoted FY2024 `$201 billion` for a
+FY2012 unit-volume question because "Apple" + "iPhone" overlapped. That is
+the silent lie the interview is designed to catch.
+
+**Cost.** A live 2012 10-K that never writes the digits "2012" in the
+matching paragraph will refuse even if the fact is present. Acceptable
+until a real period tag exists on chunks.
 
 ## Decisions explicitly deferred (ROADMAP OUT)
 
