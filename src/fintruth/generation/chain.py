@@ -1,6 +1,6 @@
 """Grounded generation: parse citations, refuse on weak evidence.
 
-Default path is extractive (no LLM) so the retrieve \u2192 answer loop works
+Default path is extractive (no LLM) so the retrieve → answer loop works
 offline. When ``XAI_API_KEY`` is set, ``generate_answer`` may call Grok
 and then re-apply the same citation / refusal gates.
 """
@@ -24,8 +24,6 @@ _TICKER = re.compile(
     re.I,
 )
 
-# RRF scores are typically ~0.03–0.04 for a single list hit; require at least
-# one fused document above this floor before answering.
 DEFAULT_MIN_SCORE = 0.012
 DEFAULT_MIN_OVERLAP = 1
 
@@ -146,7 +144,7 @@ def mentioned_tickers(question: str) -> list[str]:
         if match not in seen:
             seen.append(match)
     for name, ticker in _NAME_TO_TICKER.items():
-        if re.search(rf"\\b{name}\\b", upper) and ticker not in seen:
+        if re.search(r"\b" + name + r"\b", upper) and ticker not in seen:
             seen.append(ticker)
     return seen
 
