@@ -13,6 +13,7 @@ Rules:
   refuse. Use exactly: REFUSAL: followed by a one-sentence reason.
 - Never invent numbers, dates, ticker facts, or section names.
 - Prefer the most recent filing_date when evidence disagrees.
+- Do not emit a Sources footer; the system will attach structured citations.
 """
 
 USER_TEMPLATE = """Question: {question}
