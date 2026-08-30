@@ -1,1 +1,1 @@
-"""Grounded generation: parse citations, refuse on weak evidence.\n\nDefault path is extractive (no LLM) so the retrieve → answer loop works\noffline. When ``XAI_API_KEY`` is set, ``generate_answer`` may call Grok\nand then re-apply the same citation / refusal gates.\n"""\n
+see-local-file-chain-restore-placeholder-DO-NOT-KEEP
