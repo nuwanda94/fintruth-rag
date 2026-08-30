@@ -22,6 +22,8 @@ Can prove:
   `missing_cited_tickers`).
 - Keyword checks use the answer + **cited** spans only (iteration 14).
 - Comparison keywords are issuer-aligned (`keywords_by_ticker`, iteration 15).
+- Cited spans are resolved by **chunk_id**, not retrieve-list index
+  (iteration 16 / F8).
 
 Cannot prove:
 
@@ -115,12 +117,15 @@ questions (q013, q025, q032) look like two bullets, not a contrast.
 That is acceptable for interview-max. Week 3 LangGraph + Grok should still
 be gated: uncited or one-sided synthesis is refused.
 
-### F8. Citation index vs payload identity
+### F8. Citation index vs payload identity (chunk_id resolve — working offline)
 
-Citations are 1-based positions in the **retrieved list**, not stable
-chunk IDs in the prose. If rerank reorders the pool, `[1]` points at a
-different chunk. Footer includes `chunk_id` so the UI can show the real
-span. Do not grade citation accuracy by index alone in later evals.
+Citations keep 1-based positions in the **retrieved list** in the prose
+so the model can emit `[n]`. Footer still includes `chunk_id`. Eval no
+longer grades evidence by index alone: `resolve_cited_chunk` prefers
+`Citation.chunk_id`, then falls back to index. A rerank shuffle that
+swaps position 1 cannot move keywords onto a neighbor span. A citation
+whose `chunk_id` is missing from the current pool fails
+`citation_support`.
 
 ## 3. Priority fixes (do not expand scope)
 
@@ -132,7 +137,8 @@ span. Do not grade citation accuracy by index alone in later evals.
 4. ~~Require all named tickers in the citation set~~ **done (iteration 13)**.
 5. ~~Keyword metric must not use the uncited retrieve pool~~ **done (iteration 14)**.
 6. ~~Per-issuer keyword alignment on comparisons~~ **done (iteration 15)**.
-7. Do not raise chunk size or swap embedders based on demo scores.
+7. ~~Grade cited evidence by chunk_id, not list index~~ **done (iteration 16)**.
+8. Do not raise chunk size or swap embedders based on demo scores.
 
 ## 4. Demo metric contract (regression guard)
 
@@ -144,6 +150,7 @@ From `tests/test_eval.py`:
 - q015, q029, and q030 refuse
 - q001 answers with citations and a `Sources:` footer
 - q013 / q025 / q032 remain keyword-ok on *per-issuer* cited spans
+- shuffled retrieve lists still resolve keywords via `chunk_id`
 
 If composite collapses below 0.5, the refuse policy or demo corpus
 regressed. Do not "fix" it by deleting hard questions.

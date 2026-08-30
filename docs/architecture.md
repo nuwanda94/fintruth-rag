@@ -32,6 +32,10 @@ complete a contrast. Comparison items may also set `keywords_by_ticker`:
 each needle must appear in that issuer's cited spans (AAPL "revenue"
 cannot score the MSFT side of q013).
 
+Cited evidence is resolved by `Citation.chunk_id` first (`resolve_cited_chunk`).
+The `[n]` marker is still a 1-based retrieve-list index for the model; after
+rerank the eval harness must not treat that index as identity.
+
 Gate 5 is why `q016` / `q030` refuse instead of quoting FY2024 iPhone revenue.
 Gate 6 is why a comparison cannot quote only AAPL when the question also names MSFT.
 

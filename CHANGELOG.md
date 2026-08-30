@@ -4,6 +4,15 @@ Packaging notes for interview-max FinTruth RAG. Git tag `v0.1.0` is optional
 (create-tag is not in the connected GitHub tool set); this file is the source
 of truth for what that tag should mean.
 
+## 0.1.4 — 2026-08-31
+
+Eval citations resolve by stable `chunk_id` after retrieve-list reorder.
+
+- `resolve_cited_chunk` prefers payload identity, then 1-based index
+- Keyword / numerical / citation-support checks follow the same lookup
+- Stale `chunk_id` not present in the current pool fails citation support
+- Unit test: shuffled neighbor at index 1 cannot steal the cited span
+
 ## 0.1.3 — 2026-08-31
 
 Per-issuer keyword alignment on comparison questions.

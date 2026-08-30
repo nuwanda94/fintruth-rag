@@ -6,7 +6,7 @@ from pathlib import Path
 from fintruth.config import REPO_ROOT
 from fintruth.eval.ablation import run_retrieval_ablation
 from fintruth.eval.dataset import EvalQuestion, load_questions
-from fintruth.eval.metrics import extract_numbers, score_item, summarize
+from fintruth.eval.metrics import extract_numbers, resolve_cited_chunk, score_item, summarize
 from fintruth.eval.runner import DEMO_CORPUS, build_retriever, evaluate_question, run_eval
 from fintruth.generation.chain import Citation, GroundedAnswer
 from fintruth.retrieval.hybrid import RetrievedChunk
@@ -108,6 +108,46 @@ def test_citation_support_rejects_foreign_ticker() -> None:
         chunks=[chunk],
     )
     assert not score_item(q, result).citation_support_ok
+
+
+def test_keywords_follow_chunk_id_after_rerank_shuffle() -> None:
+    """F8: [1] after a pool reorder must not score the neighbor span."""
+    q = EvalQuestion(
+        id="f8",
+        question="What competition risks does Apple disclose?",
+        tickers=["AAPL"],
+        must_cite=True,
+        keywords=["competition"],
+        category="risk",
+    )
+    cited = _chunk("AAPL:risk", "Apple faces intense competition.", "AAPL", section="risk_factors")
+    neighbor = _chunk("AAPL:mda", "iPhone revenue increased.", "AAPL")
+    # Citation index still says 1, but the retrieve list was reranked so
+    # position 1 is now the MD&A neighbor. Identity must follow chunk_id.
+    shuffled = GroundedAnswer(
+        question=q.question,
+        answer="Apple faces intense competition [1]",
+        refused=False,
+        refusal_reason=None,
+        citations=[Citation(1, cited.chunk_id, "AAPL", "10-K", "risk_factors", "2024-11-01")],
+        chunks=[neighbor, cited],
+    )
+    resolved = resolve_cited_chunk(shuffled, shuffled.citations[0])
+    assert resolved is not None
+    assert resolved.chunk_id == "AAPL:risk"
+    score = score_item(q, shuffled)
+    assert score.keyword_ok
+    assert score.citation_support_ok
+
+    stale = GroundedAnswer(
+        question=q.question,
+        answer="Apple faces intense competition [1]",
+        refused=False,
+        refusal_reason=None,
+        citations=[Citation(1, "AAPL:gone", "AAPL", "10-K", "risk_factors", "2024-11-01")],
+        chunks=[neighbor, cited],
+    )
+    assert not score_item(q, stale).citation_support_ok
 
 
 def test_multi_ticker_keywords_require_all_cited_terms() -> None:
