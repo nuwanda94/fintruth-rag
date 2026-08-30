@@ -5,6 +5,39 @@ Every run must append a new entry at the top (most recent first).
 
 ---
 
+## Iteration 7 — 2026-08-30 19:05 IST
+
+**Completed**
+- Week 2 Day 5 analysis pass (no live catalog; docs grounded in code + demo eval):
+  - `docs/design_decisions.md` — D1–D9 (offline-first, section chunks, hybrid RRF, lexical reranker, as_of cutoff, extractive+gates, refusal-labeled eval, binary metrics, in-memory store) plus explicit OUT list
+  - `evals/failure_analysis.md` — F1–F8 from the 34-question bank vs `DEMO_CORPUS` (out-of-corpus, numerical-absent, notes-sparse, multi-ticker gaps, keyword drift, score-floor artifacts, extractive-not-synthesis, citation index identity)
+  - `docs/architecture.md` — first pipeline diagram matching current modules
+  - `tests/test_docs.py` — docs stay non-empty and mention demo failure IDs
+
+**Current Status**
+- Week 1: foundation + offline end-to-end loop + thin eval **done**
+- Week 2 Days 1–2: reranker + as-of + ablation helper **done offline**
+- Week 2 Days 3–4: grounding/refusal + 34-question set **done offline**
+- Week 2 Day 5: design_decisions + failure_analysis **first pass done** (demo-only evidence)
+- Week 3 Days 1–2: LangGraph + Streamlit **not started**
+- Live ablation numbers / RAGAS / `evals/results/*.json` from a real run **not started**
+
+**Next Iteration Should Pick Up**
+1. Week 3 Days 1–2: minimal LangGraph retrieve → grade → generate or refuse (`src/fintruth/agent/graph.py`)
+2. Streamlit evidence UI (`src/fintruth/ui/app.py`): answer, expandable chunks/scores/metadata, citations, refusal indicator
+3. Persist `evals/results/` from `make eval` when a writable checkout is available
+4. Smoke live ingest when `SEC_USER_AGENT` + EDGAR are available
+
+**Blockers / Notes**
+- Docs explicitly forbid treating hash-embedder demo ranks as quality claims
+- Grok path still optional; eval harness stays extractive
+- Live catalog numbers still blocked on ingest credentials
+
+**Eval metrics**
+- Question bank n=34. Demo composite contract unchanged (`> 0.5` in `tests/test_eval.py`). No new live-catalog numbers this iteration.
+
+---
+
 ## Iteration 6 — 2026-08-30 18:02 IST
 
 **Completed**
@@ -18,15 +51,15 @@ Every run must append a new entry at the top (most recent first).
 
 **Current Status**
 - Week 1: foundation + offline end-to-end loop + thin eval **done**
-- Week 2 Days 1–2: reranker + as-of + ablation helper **done offline**
-- Week 2 Days 3–4: stronger grounding/refusal + 34-question set **implemented offline**; live ablation numbers / RAGAS **not started**
+- Week 2 Days 1-2: reranker + as-of + ablation helper **done offline**
+- Week 2 Days 3-4: stronger grounding/refusal + 34-question set **implemented offline**; live ablation numbers / RAGAS **not started**
 - Week 2 Day 5 (design_decisions + failure_analysis from real failures) **not started**
 
 **Next Iteration Should Pick Up**
 1. Week 2 Day 5: first pass of `docs/design_decisions.md` + `evals/failure_analysis.md` from demo-eval failure modes
 2. Persist `evals/results/` from `make eval` when a writable checkout is available
 3. Smoke live ingest when `SEC_USER_AGENT` + EDGAR are available
-4. Week 3 Days 1–2: minimal LangGraph retrieve → grade → generate/refuse + Streamlit evidence UI
+4. Week 3 Days 1-2: minimal LangGraph retrieve → grade → generate/refuse + Streamlit evidence UI
 
 **Blockers / Notes**
 - Grok path uses stdlib `urllib` against `https://api.x.ai/v1/chat/completions`; eval harness never calls it
@@ -53,13 +86,13 @@ Every run must append a new entry at the top (most recent first).
 
 **Current Status**
 - Week 1: foundation + offline end-to-end loop + thin eval **done** (not live-run against SEC)
-- Week 2 Days 1–2: reranker + temporal as-of + ablation helper **implemented offline**
-- Week 2 Days 3–4 (stronger generation/refusal, 30–40 questions, live ablation numbers) **not started**
+- Week 2 Days 1-2: reranker + temporal as-of + ablation helper **implemented offline**
+- Week 2 Days 3-4 (stronger generation/refusal, 30-40 questions, live ablation numbers) **not started**
 - No Cohere/cross-encoder network call yet (lexical stand-in by design)
 
 **Next Iteration Should Pick Up**
-1. Week 2 Days 3–4: stronger grounding + explicit refusal path polish + citation formatting
-2. Expand `evals/questions.jsonl` toward 30–40 hard items (keep demo-compatible golds)
+1. Week 2 Days 3-4: stronger grounding + explicit refusal path polish + citation formatting
+2. Expand `evals/questions.jsonl` toward 30-40 hard items (keep demo-compatible golds)
 3. Optional: call xAI Grok from `generate_answer` when `XAI_API_KEY` is set
 4. Persist first `evals/results/` numbers from a real catalog when ingest is available
 5. Smoke live ingest when `SEC_USER_AGENT` + network are available
