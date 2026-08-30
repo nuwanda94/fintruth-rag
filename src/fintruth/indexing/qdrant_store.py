@@ -8,7 +8,6 @@ and later generation expect.
 from __future__ import annotations
 
 import logging
-import math
 from dataclasses import dataclass
 from typing import Any
 
@@ -233,8 +232,3 @@ def index_payloads(
         vectors = embedder.embed(texts)
         total += store.upsert(ids, vectors, batch)
     return total
-
-
-def _unused_math() -> float:
-    # keep math imported for future sparse-weight helpers without lint churn
-    return math.nan
