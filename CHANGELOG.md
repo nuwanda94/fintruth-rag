@@ -4,6 +4,15 @@ Packaging notes for interview-max FinTruth RAG. Git tag `v0.1.0` is optional
 (create-tag is not in the connected GitHub tool set); this file is the source
 of truth for what that tag should mean.
 
+## 0.1.5 — 2026-08-31
+
+Unit-aware numerical scoring and unit-volume refusal gate (F2 residual).
+
+- `parse_quantity` / `extract_quantities` distinguish `$201 billion` from `201 million`
+- `score_numerical` requires matching scale when gold tokens include one
+- `should_refuse` blocks exact unit-volume asks that only have dollar figures
+- Generation package split: `citations.py`, `refuse.py`, `units.py`, `generate.py`
+
 ## 0.1.4 — 2026-08-31
 
 Eval citations resolve by stable `chunk_id` after retrieve-list reorder.
