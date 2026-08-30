@@ -5,6 +5,40 @@ Every run must append a new entry at the top (most recent first).
 
 ---
 
+## Iteration 1 — 2026-08-30 13:20 IST
+
+**Completed**
+- Scaffolded interview-max tree: `src/fintruth/{config,logging,ingestion,indexing,retrieval,generation,agent,eval,ui}`, `scripts/`, `data/{raw,processed}`, `evals/`, `docs/`, `tests/`, `notebooks/`
+- Added `pyproject.toml` (uv/hatch, pydantic-settings, edgartools, bs4/lxml, tiktoken), `.env.example`, `.gitignore`, `Makefile`
+- Implemented working ingestion increment (not stubs-only):
+  - `src/fintruth/config.py` — Settings + default 10-ticker universe
+  - `src/fintruth/ingestion/downloader.py` — edgartools 10-K/10-Q fetch + disk cache
+  - `src/fintruth/ingestion/parser.py` — MD&A / Risk Factors / notes HTML sections
+  - `src/fintruth/ingestion/chunker.py` — token windows + Qdrant-ready payload
+  - `src/fintruth/ingestion/catalog.py` — SQLite filings/chunks
+  - `src/fintruth/ingestion/pipeline.py` + `scripts/ingest.py` CLI
+- Smoke tests: `tests/test_chunker.py` (parse + chunk metadata, no network)
+
+**Current Status**
+- Week 1 Days 1–2: structure + config + ingestion pipeline **implemented**; not yet run against live SEC (needs `uv sync` + `SEC_USER_AGENT`)
+- Week 1 Days 3–4 (embed/Qdrant/hybrid/generation) not started
+
+**Next Iteration Should Pick Up**
+1. `uv sync` locally and smoke `python scripts/ingest.py --tickers AAPL --years 1` (verify catalog + processed JSONL)
+2. Harden parser on a real 10-K (item heading variants, 10-Q Item 2 MD&A)
+3. Start Days 3–4: `indexing/embedder.py` + `indexing/qdrant_store.py`
+4. Hybrid retriever skeleton (`retrieval/hybrid.py`, `retrieval/filters.py`)
+
+**Blockers / Notes**
+- Live ingest needs a valid SEC User-Agent email in `.env` (`SEC_USER_AGENT`)
+- edgartools API surface can drift; downloader already degrades per-ticker
+- No eval metrics yet
+
+**Eval metrics**
+- n/a
+
+---
+
 ## Iteration 0 — Bootstrap (2026-08-30)
 
 **Completed**

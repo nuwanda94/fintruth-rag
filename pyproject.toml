@@ -1,0 +1,59 @@
+[project]
+name = "fintruth-rag"
+version = "0.1.0"
+description = "SEC-grounded financial research assistant (hybrid RAG)"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "nuwanda94" }]
+dependencies = [
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "python-dotenv>=1.0",
+    "edgartools>=3.0",
+    "beautifulsoup4>=4.12",
+    "lxml>=5.2",
+    "tiktoken>=0.7",
+    "httpx>=0.27",
+    "tenacity>=8.5",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2",
+    "ruff>=0.5",
+    "mypy>=1.10",
+]
+# Week 1 Days 3+ extras; listed here so installs stay one-command later.
+index = [
+    "qdrant-client>=1.10",
+    "langchain>=0.3",
+    "langchain-core>=0.3",
+]
+ui = [
+    "streamlit>=1.36",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/fintruth"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "scripts", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.mypy]
+python_version = "3.11"
+mypy_path = "src"
+ignore_missing_imports = true
