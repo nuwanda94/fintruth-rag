@@ -9,9 +9,10 @@ from fintruth.eval.dataset import EvalQuestion
 
 def test_questions_jsonl_has_interview_floor() -> None:
     items = load_questions()
-    assert len(items) >= 15
+    assert len(items) >= 30
     assert any(q.expect_refuse for q in items)
     assert any(q.category == "out_of_corpus" for q in items)
+    assert any(q.category == "multi_ticker" for q in items)
     ids = [q.id for q in items]
     assert len(ids) == len(set(ids))
 
@@ -43,8 +44,10 @@ def test_demo_eval_runs_and_refuses_out_of_corpus() -> None:
     assert run.summary["composite"] > 0.5
     by_id = {row["id"]: row for row in run.items}
     assert by_id["q015"]["refused"] is True
+    assert by_id["q029"]["refused"] is True
     assert by_id["q001"]["refused"] is False
     assert by_id["q001"]["citations"]
+    assert "Sources:" in by_id["q001"]["answer"]
 
 
 def test_evaluate_question_on_demo_retriever() -> None:

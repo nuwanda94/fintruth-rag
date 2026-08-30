@@ -1,6 +1,11 @@
 """Offline tests for citation parse, refusal, and extractive grounding."""
 
-from fintruth.generation.chain import generate_answer, parse_citations, should_refuse
+from fintruth.generation.chain import (
+    generate_answer,
+    mentioned_tickers,
+    parse_citations,
+    should_refuse,
+)
 from fintruth.generation.prompts import REFUSAL_PREFIX, build_messages, format_evidence_block
 from fintruth.indexing.embedder import HashEmbedder
 from fintruth.indexing.qdrant_store import InMemoryVectorStore, index_payloads
@@ -51,18 +56,35 @@ def test_extractive_answer_cites_overlapping_chunk() -> None:
         _chunk("AAPL:risk:0", "Apple faces intense competition in smartphones."),
         _chunk("XOM:risk:0", "Commodity prices remain volatile.", ticker="XOM"),
     ]
-    result = generate_answer("What competition risks does Apple disclose?", chunks)
+    result = generate_answer("What competition risks does Apple disclose?", chunks, use_llm=False)
     assert not result.refused
     assert "[1]" in result.answer
     assert result.citations
     assert result.citations[0].chunk_id == "AAPL:risk:0"
+    assert "Sources:" in result.answer
+    assert "AAPL 10-K risk_factors" in result.answer
 
 
 def test_extractive_refusal_when_no_term_overlap() -> None:
     chunks = [_chunk("a", "Quarterly cash dividend declared by the board.")]
-    result = generate_answer("What litigation contingencies did Tesla disclose?", chunks)
+    result = generate_answer("What litigation contingencies did Tesla disclose?", chunks, use_llm=False)
     assert result.refused
     assert result.answer.startswith(REFUSAL_PREFIX)
+
+
+def test_multi_ticker_refuses_when_one_name_missing() -> None:
+    chunks = [_chunk("AAPL:risk:0", "Apple faces intense competition.")]
+    result = generate_answer(
+        "Compare AAPL competition with MSFT cloud competition.",
+        chunks,
+        use_llm=False,
+    )
+    assert result.refused
+    assert "MSFT" in (result.refusal_reason or "")
+
+
+def test_mentioned_tickers_dedupes() -> None:
+    assert mentioned_tickers("AAPL vs MSFT vs AAPL") == ["AAPL", "MSFT"]
 
 
 def test_llm_mode_parses_refusal_prefix() -> None:
@@ -75,6 +97,30 @@ def test_llm_mode_parses_refusal_prefix() -> None:
     assert result.refused
     assert result.mode == "llm"
     assert "period" in (result.refusal_reason or "")
+
+
+def test_llm_mode_refuses_uncited_claims() -> None:
+    chunks = [_chunk("a", "Apple faces intense competition.")]
+    result = generate_answer(
+        "What competition risks does Apple disclose?",
+        chunks,
+        model_text="Apple faces intense competition in every market.",
+    )
+    assert result.refused
+    assert result.refusal_reason == "model answer lacked citations"
+
+
+def test_llm_mode_attaches_sources_footer() -> None:
+    chunks = [_chunk("a", "Apple faces intense competition.")]
+    result = generate_answer(
+        "What competition risks does Apple disclose?",
+        chunks,
+        model_text="Apple discloses intense competition [1].",
+    )
+    assert not result.refused
+    assert result.mode == "llm"
+    assert "Sources:" in result.answer
+    assert result.citations[0].ticker == "AAPL"
 
 
 def test_prompt_includes_numbered_evidence() -> None:
@@ -116,7 +162,7 @@ def test_end_to_end_retrieve_then_generate() -> None:
         filters=RetrievalFilters(tickers=["AAPL"]),
         final_k=2,
     )
-    result = generate_answer("What competition risks does Apple disclose?", hits)
+    result = generate_answer("What competition risks does Apple disclose?", hits, use_llm=False)
     assert hits
     assert not result.refused
     assert result.citations
