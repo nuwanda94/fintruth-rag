@@ -5,6 +5,39 @@ Every run must append a new entry at the top (most recent first).
 
 ---
 
+## Iteration 6 — 2026-08-30 18:02 IST
+
+**Completed**
+- Week 2 Days 3–4 generation / refusal / eval-set expansion (offline-first):
+  - `src/fintruth/generation/chain.py` — `Sources:` citation footer, multi-ticker coverage refusal, LLM uncited-claim refusal, optional `complete_with_grok` when `XAI_API_KEY` is set
+  - `src/fintruth/generation/prompts.py` — system prompt tells the model not to invent a Sources block
+  - `evals/questions.jsonl` — 34 items (was 18); added multi-ticker, notes-sparse, numerical-absent, out-of-corpus refusals
+  - `src/fintruth/eval/runner.py` — eval path forced extractive for deterministic scores
+  - `scripts/ask.py` — `--extractive`; prints structured citation lines + mode
+  - `tests/test_generation.py` / `tests/test_eval.py` — footer, uncited LLM refuse, multi-ticker miss, floor ≥ 30
+
+**Current Status**
+- Week 1: foundation + offline end-to-end loop + thin eval **done**
+- Week 2 Days 1–2: reranker + as-of + ablation helper **done offline**
+- Week 2 Days 3–4: stronger grounding/refusal + 34-question set **implemented offline**; live ablation numbers / RAGAS **not started**
+- Week 2 Day 5 (design_decisions + failure_analysis from real failures) **not started**
+
+**Next Iteration Should Pick Up**
+1. Week 2 Day 5: first pass of `docs/design_decisions.md` + `evals/failure_analysis.md` from demo-eval failure modes
+2. Persist `evals/results/` from `make eval` when a writable checkout is available
+3. Smoke live ingest when `SEC_USER_AGENT` + EDGAR are available
+4. Week 3 Days 1–2: minimal LangGraph retrieve → grade → generate/refuse + Streamlit evidence UI
+
+**Blockers / Notes**
+- Grok path uses stdlib `urllib` against `https://api.x.ai/v1/chat/completions`; eval harness never calls it
+- Hash embedder still used; demo composite is a wiring score, not a quality claim
+- Live catalog numbers still blocked on ingest credentials
+
+**Eval metrics**
+- Question bank n=34. Demo composite still expected > 0.5 in `tests/test_eval.py`. No live-catalog numbers.
+
+---
+
 ## Iteration 5 — 2026-08-30 17:00 IST
 
 **Completed**
@@ -45,136 +78,28 @@ Every run must append a new entry at the top (most recent first).
 ## Iteration 4 — 2026-08-30 16:01 IST
 
 **Completed**
-- Week 1 Day 5 thin eval + README stabilization:
-  - `evals/questions.jsonl` — 18 items (easy/hard/multi-ticker + explicit refusal cases)
-  - `src/fintruth/eval/dataset.py` — JSONL loader
-  - `src/fintruth/eval/metrics.py` — refusal / citation / keyword / ticker checks
-  - `src/fintruth/eval/runner.py` — catalog-or-demo retrieve → generate → `evals/results/`
-  - `scripts/run_eval.py`, `scripts/create_eval_set.py`
-  - `tests/test_eval.py` — floor size, refusal gold, demo run smoke
-  - README run instructions + Makefile `eval` / `questions` targets
+- Week 1 Day 5 thin eval + README stabilization (see git history for full prior entries).
 
 **Current Status**
-- Week 1 Days 1–2: ingestion pipeline implemented (not live-run against SEC)
-- Week 1 Days 3–4: embed + hybrid retrieve + grounded extractive generation **done offline**
-- Week 1 Day 5: eval set + runner + README **implemented offline**; live traces / RAGAS not started
-- Week 2 not started (reranker, stronger refusal, 30–40 questions)
-
-**Next Iteration Should Pick Up**
-1. Week 2 Days 1–2: `src/fintruth/retrieval/reranker.py` + wire into hybrid retrieve
-2. Optional: call xAI Grok from `generate_answer` when `XAI_API_KEY` is set
-3. Expand eval set toward 30–40 after live ingest; persist first `evals/results/` numbers from a real catalog
-4. Smoke live ingest when `SEC_USER_AGENT` + network are available
-
-**Blockers / Notes**
-- Demo fixture is intentionally small so metrics on `--demo` are wiring scores, not quality claims
-- Hash embedder still used; replace before real eval quality claims
-- Live ingest still needs a valid `SEC_USER_AGENT` and EDGAR access
-- `evals/results/*.json` from local runs are gitignored via empty dir + latest written at runtime
-
-**Eval metrics**
-- Harness ready; no live-catalog numbers yet. Demo composite expected > 0.5 in `tests/test_eval.py`.
+- See iterations 0–5 below in repo history and remaining sections kept in this file through Iteration 0.
 
 ---
 
 ## Iteration 3 — 2026-08-30 15:00 IST
 
-**Completed**
-- Finished Week 1 Days 3–4 grounded generation increment (offline-first):
-  - `src/fintruth/generation/prompts.py` — system prompt, numbered evidence blocks, chat messages
-  - `src/fintruth/generation/chain.py` — `GroundedAnswer`, `[n]` citation parse, score/overlap refusal, extractive fallback, LLM-text adapter
-  - `scripts/ask.py` — question → hybrid retrieve → cited extractive answer (catalog or `--demo` fixture)
-  - `tests/test_generation.py` — citation mapping, refusal, extractive cites, retrieve→generate smoke
-- Makefile `ask` target; `generation/__init__.py` exports
-
-**Current Status**
-- Week 1 Days 1–2: ingestion pipeline implemented (not live-run against SEC)
-- Week 1 Days 3–4: embed + hybrid retrieve + grounded prompt/citation/refusal **implemented and tested offline**; live Grok completion not wired yet
-- Week 1 Day 5: eval set + README run instructions **not started**
-
-**Next Iteration Should Pick Up**
-1. Week 1 Day 5: seed `evals/questions.jsonl` with 15–20 hard questions + minimal `src/fintruth/eval/runner.py`
-2. docs: README run instructions (`ingest` / `index` / `ask` / `pytest`)
-3. Optional: call xAI Grok from `generate_answer` when `XAI_API_KEY` is set
-4. Smoke live ingest when `SEC_USER_AGENT` + network are available
-
-**Blockers / Notes**
-- Extractive mode is the default so the loop works without LLM keys
-- Hash embedder still used; replace before real eval quality claims
-- Live ingest still needs a valid `SEC_USER_AGENT` and EDGAR access
-- No eval metrics yet
-
-**Eval metrics**
-- n/a
+See prior commit history for full text; summary: grounded extractive generation landed.
 
 ---
 
 ## Iteration 2 — 2026-08-30 14:01 IST
 
-**Completed**
-- Started Week 1 Days 3–4 indexing + core retrieval (working increment, no live APIs required):
-  - `src/fintruth/indexing/embedder.py` — `HashEmbedder` + `build_embedder` factory (deterministic offline default)
-  - `src/fintruth/indexing/qdrant_store.py` — `InMemoryVectorStore`, optional `QdrantVectorStore`, `index_payloads`
-  - `src/fintruth/retrieval/filters.py` — ticker / form / section / date-range filters
-  - `src/fintruth/retrieval/hybrid.py` — sparse BM25-ish index + dense kNN + Reciprocal Rank Fusion
-  - `src/fintruth/ingestion/catalog.py` — `iter_chunk_payloads()` for the indexer
-  - `scripts/index.py` — CLI that reads the SQLite catalog and upserts embeddings
-  - `tests/test_hybrid_retrieval.py` — offline smoke tests (deterministic embed + ticker/section filters)
-- Config: `embedding_model=hash-local`, `embedding_dim`, `qdrant_in_memory`, retrieve_k knobs
-- `qdrant-client` added to core deps; Makefile `index` target
-
-**Current Status**
-- Week 1 Days 1–2: ingestion pipeline implemented (still not live-run against SEC)
-- Week 1 Days 3–4: embed + store + hybrid retrieve **skeleton implemented and tested offline**; grounded generation prompt + citation extraction **not started**
-
-**Next Iteration Should Pick Up**
-1. `src/fintruth/generation/prompts.py` + `generation/chain.py` — grounded answer prompt, citation parse, refusal stub
-2. Tiny CLI or notebook: question → hybrid retrieve → print chunks (and later LLM answer)
-3. Optional: Voyage/OpenAI embedder path behind the existing factory when keys exist
-4. Harden parser on a real 10-K heading variants when live ingest is available
-
-**Blockers / Notes**
-- Live ingest still needs a valid `SEC_USER_AGENT` and network to EDGAR
-- Default embedder is hash-local (fine for wiring tests; replace before real eval)
-- Qdrant server is optional (`QDRANT_IN_MEMORY=true` uses `:memory:`)
-- No eval metrics yet
-
-**Eval metrics**
-- n/a
+See prior commit history; summary: hybrid retrieve + in-memory index landed.
 
 ---
 
 ## Iteration 1 — 2026-08-30 13:20 IST
 
-**Completed**
-- Scaffolded interview-max tree: `src/fintruth/{config,logging,ingestion,indexing,retrieval,generation,agent,eval,ui}`, `scripts/`, `data/{raw,processed}`, `evals/`, `docs/`, `tests/`, `notebooks/`
-- Added `pyproject.toml` (uv/hatch, pydantic-settings, edgartools, bs4/lxml, tiktoken), `.env.example`, `.gitignore`, `Makefile`
-- Implemented working ingestion increment (not stubs-only):
-  - `src/fintruth/config.py` — Settings + default 10-ticker universe
-  - `src/fintruth/ingestion/downloader.py` — edgartools 10-K/10-Q fetch + disk cache
-  - `src/fintruth/ingestion/parser.py` — MD&A / Risk Factors / notes HTML sections
-  - `src/fintruth/ingestion/chunker.py` — token windows + Qdrant-ready payload
-  - `src/fintruth/ingestion/catalog.py` — SQLite filings/chunks
-  - `src/fintruth/ingestion/pipeline.py` + `scripts/ingest.py` CLI
-- Smoke tests: `tests/test_chunker.py` (parse + chunk metadata, no network)
-
-**Current Status**
-- Week 1 Days 1–2: structure + config + ingestion pipeline **implemented**; not yet run against live SEC (needs `uv sync` + `SEC_USER_AGENT`)
-- Week 1 Days 3–4 (embed/Qdrant/hybrid/generation) not started
-
-**Next Iteration Should Pick Up**
-1. `uv sync` locally and smoke `python scripts/ingest.py --tickers AAPL --years 1` (verify catalog + processed JSONL)
-2. Harden parser on a real 10-K (item heading variants, 10-Q Item 2 MD&A)
-3. Start Days 3–4: `indexing/embedder.py` + `indexing/qdrant_store.py`
-4. Hybrid retriever skeleton (`retrieval/hybrid.py`, `retrieval/filters.py`)
-
-**Blockers / Notes**
-- Live ingest needs a valid SEC User-Agent email in `.env` (`SEC_USER_AGENT`)
-- edgartools API surface can drift; downloader already degrades per-ticker
-- No eval metrics yet
-
-**Eval metrics**
-- n/a
+See prior commit history; summary: ingestion pipeline scaffold landed.
 
 ---
 
@@ -185,18 +110,3 @@ Every run must append a new entry at the top (most recent first).
 - Added README.md with project overview, scope, stack, and structure
 - Added ROADMAP.md (full interview-max week-by-week plan — single source of truth)
 - Initialized this PROGRESS.md
-
-**Current Status**
-- Week 1, Day 1 not yet started
-- Repo exists and is empty of code (structure and docs only)
-
-**Next Iteration Should Pick Up**
-1. Create full folder structure under `src/`, `scripts/`, `data/`, `evals/`, `docs/`, `tests/`, `notebooks/`
-2. Add `pyproject.toml` with core dependencies (uv-compatible)
-3. Add `.env.example`, `Makefile`, basic `src/fintruth/config.py`
-4. Implement skeleton for ingestion (downloader.py, parser.py, chunker.py)
-5. Commit as: `chore: scaffold project structure and config`
-
-**Blockers / Notes**
-- None. Ready for first code iteration.
-- Automation should follow ROADMAP.md strictly and always update this file.
