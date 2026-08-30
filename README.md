@@ -30,12 +30,28 @@ Ship a focused, deeply understood, measurable system demonstrating:
 - Python 3.11+ / uv
 - LangChain + minimal LangGraph
 - Qdrant (hybrid + filtering)
-- Embeddings: voyage-finance-2 or text-embedding-3-large / BGE
+- Embeddings: voyage-finance-2 or text-embedding-3-large / BGE (hash-local offline default)
 - Reranker: Cohere or BGE-reranker
-- LLM: xAI Grok API (primary)
+- LLM: xAI Grok API (primary); extractive fallback without keys
 - Ingestion: edgartools + BeautifulSoup/lxml
 - Eval: RAGAS + custom numerical/citation checks
 - UI: Streamlit | Observability: LangSmith / Langfuse
+
+## Quick start (offline loop)
+
+```bash
+uv sync --extra dev
+uv run pytest -q
+uv run python scripts/ask.py --demo "What competition risks does Apple disclose?"
+```
+
+Live corpus (needs `SEC_USER_AGENT` in `.env`):
+
+```bash
+uv run python scripts/ingest.py --tickers AAPL --years 1
+uv run python scripts/index.py
+uv run python scripts/ask.py "What competition risks does Apple disclose?" --ticker AAPL
+```
 
 ## File Structure
 ```
@@ -43,7 +59,7 @@ fintruth-rag/
 ├── README.md, pyproject.toml, .env.example, Makefile, PROGRESS.md
 ├── data/{raw, processed, catalog.db}
 ├── src/fintruth/{config.py, ingestion/, indexing/, retrieval/, generation/, agent/, eval/, ui/}
-├── scripts/{ingest.py, index.py, run_eval.py, create_eval_set.py}
+├── scripts/{ingest.py, index.py, ask.py, run_eval.py, create_eval_set.py}
 ├── evals/{questions.jsonl, results/, failure_analysis.md}
 ├── notebooks/, tests/
 └── docs/{architecture.md, design_decisions.md, limitations.md, exceptional_work.md}
