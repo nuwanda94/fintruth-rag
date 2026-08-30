@@ -14,7 +14,7 @@ SEC / demo fixture
 
 Week 3 loop is `TruthSeekingGraph` in `src/fintruth/agent/graph.py`. LangGraph is an optional compile of the same nodes; tests run the typed state machine with no extra deps.
 
-## Grade gates (`should_refuse`)
+## Grade gates (`should_refuse` + post-cite checks)
 
 Generation is blocked when any of these fire:
 
@@ -23,8 +23,10 @@ Generation is blocked when any of these fire:
 3. Top fused score below `DEFAULT_MIN_SCORE`
 4. No term overlap between question and chunk text
 5. Exact-figure question ("exact" / "unit volume" / "units" / "deliveries") names a year that does **not** appear in chunk text (filing_date alone is not enough)
+6. Multi-ticker question whose citations omit a named issuer (extractive selection covers issuers first; LLM answers that cite only one side are refused)
 
 Gate 5 is why `q016` / `q030` refuse instead of quoting FY2024 iPhone revenue.
+Gate 6 is why a comparison cannot quote only AAPL when the question also names MSFT.
 
 ## Default data path
 

@@ -18,6 +18,8 @@ Can prove:
   the hit list (`should_refuse` missing-ticker rule).
 - Exact-figure questions that name a year missing from chunk text refuse
   (`q016` Q3 2019, `q030` FY2012) instead of quoting nearby iPhone revenue.
+- Comparison answers cite every named issuer (`select_quote_indices` +
+  `missing_cited_tickers`).
 
 Cannot prove:
 
@@ -66,20 +68,22 @@ custom numerical check (gold figure or refuse) plus a future unit parser.
 After live ingest this becomes a real parser/chunker test. If notes are
 still empty, the correct behavior remains refuse, not inventing "none".
 
-### F4. Multi-ticker coverage gaps
+### F4. Multi-ticker coverage gaps (citation-set gate — working offline)
 
 | IDs | Symptom | Root cause | Status |
 |-----|---------|------------|--------|
-| q013 | AAPL iPhone vs MSFT Azure | Both MD&A chunks exist in demo | Should answer if both pass filters |
-| q025 | META vs GOOGL regulation | Both risk chunks exist | Should answer |
-| q032 | XOM climate vs UNH medical | Different sections; filters leave `sections=[]` | Relies on hybrid not dropping one issuer |
+| q013 | AAPL iPhone vs MSFT Azure | Both MD&A chunks exist in demo | Answer; citations must include both |
+| q025 | META vs GOOGL regulation | Both risk chunks exist | Same |
+| q032 | XOM climate vs UNH medical | Different sections; filters leave `sections=[]` | Relies on hybrid + quote cover |
 
 Policy: if the question names ≥2 tickers and any named ticker is missing
-from retrieved payloads, refuse. That is conservative and interview-
-defendable. Residual failure: retrieve can still return two issuers
-while the extractive quotes miss one keyword (`climate` vs `medical`).
-Keyword metric uses answer **or** chunk haystack, so this can hide a
-thin answer.
+from retrieved payloads, refuse. Iteration 13 also requires those tickers
+in the **citation set**, not just the retrieve pool. Extractive selection
+picks one overlapping chunk per named issuer before filling remaining
+slots by rank. An LLM completion that only cites one side is refused.
+
+Residual: keyword metric still uses answer **or** chunk haystack, so a
+thin-but-cited contrast can look complete on keywords.
 
 ### F5. Keyword / section mismatch
 
@@ -100,9 +104,9 @@ land.
 ### F7. Extractive answers are not synthesis
 
 `extractive_answer` pastes up to three overlapping snippets. Comparison
-questions (q013, q025, q032) will look like two bullets, not a contrast.
-That is acceptable for Week 2. Week 3 LangGraph + Grok should still be
-gated: uncited synthesis is refused.
+questions (q013, q025, q032) look like two bullets, not a contrast.
+That is acceptable for interview-max. Week 3 LangGraph + Grok should still
+be gated: uncited or one-sided synthesis is refused.
 
 ### F8. Citation index vs payload identity
 
@@ -118,8 +122,7 @@ span. Do not grade citation accuracy by index alone in later evals.
 2. After first live catalog: re-run the 34 and tag each residual miss
    as retrieve / filter / refuse-policy / generation.
 3. Gold numeric spans for live q016/q030-class items still need a unit parser.
-4. Consider requiring **all** named tickers in the citation set, not just
-   retrieve payloads, for multi-ticker items.
+4. ~~Require all named tickers in the citation set~~ **done (iteration 13)**.
 5. Do not raise chunk size or swap embedders based on demo scores.
 
 ## 4. Demo metric contract (regression guard)

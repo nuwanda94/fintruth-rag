@@ -10,7 +10,7 @@ FinTruth is a *strictly grounded* SEC research assistant. Scope is 8–12 large-
 
 Ingest → section chunks → hybrid dense+sparse RRF → lexical rerank → grade → generate or refuse.
 
-Point at `docs/architecture.md`. Offline default is hash embeddings + `InMemoryVectorStore` so the loop is deterministic without keys. Call out grade gate 5: exact-figure + year must appear in chunk *text*.
+Point at `docs/architecture.md`. Offline default is hash embeddings + `InMemoryVectorStore` so the loop is deterministic without keys. Call out grade gate 5 (period in chunk *text*) and gate 6 (comparison answers must *cite* every named issuer).
 
 ## 2. Live easy query (2 min)
 
@@ -29,7 +29,9 @@ Ask: *Did Tesla disclose Cybertruck unit deliveries in its latest 10-K?*
 
 Show the refusal banner (missing issuer). Follow with *What was Apple's exact FY2012 greater-China iPhone unit volume?* — that refuses because 2012 is not in the FY2024 MD&A snippet, even though "iPhone" overlaps.
 
-Explain grade gates (`should_refuse`) plus extractive generator still refusing if grade is optimistic.
+Optional contrast: *Compare Apple iPhone revenue commentary with Microsoft Azure growth commentary.* — citations must include both AAPL and MSFT. A one-sided quote is a refuse.
+
+Explain grade gates (`should_refuse` + `missing_cited_tickers`) plus extractive generator still refusing if grade is optimistic.
 
 ## 4. Eval + ablation (3 min)
 

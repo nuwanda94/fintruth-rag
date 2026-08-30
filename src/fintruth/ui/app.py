@@ -12,6 +12,13 @@ from fintruth.agent.graph import TruthSeekingGraph
 from fintruth.eval.runner import DEMO_CORPUS, build_retriever
 from fintruth.retrieval.filters import RetrievalFilters
 
+_EXAMPLES = {
+    "Easy — AAPL competition": "What competition risks does Apple disclose?",
+    "Hard refuse — TSLA": "Did Tesla disclose Cybertruck unit deliveries in its latest 10-K?",
+    "Period refuse — FY2012 units": "What was Apple's exact FY2012 greater-China iPhone unit volume?",
+    "Compare — AAPL vs MSFT": "Compare Apple iPhone revenue commentary with Microsoft Azure growth commentary.",
+}
+
 
 @lru_cache(maxsize=1)
 def _demo_graph() -> TruthSeekingGraph:
@@ -40,6 +47,10 @@ def main() -> None:
         ticker = st.selectbox("Ticker", ["ALL", "AAPL", "MSFT", "GOOGL", "AMZN", "META", "NVDA", "JPM", "XOM", "UNH", "JNJ"])
         section = st.selectbox("Section", ["ALL", "risk_factors", "mda"])
         as_of = st.text_input("As-of date (YYYY-MM-DD)", value="")
+        st.subheader("Walkthrough prompts")
+        for label, prompt in _EXAMPLES.items():
+            if st.button(label):
+                st.session_state["question"] = prompt
         st.markdown(
             "Demo corpus is the offline fixture from `evals` — not live EDGAR. "
             "Hash embeddings + lexical rerank are wiring, not quality claims."
@@ -47,7 +58,8 @@ def main() -> None:
 
     question = st.text_input(
         "Question",
-        value="What competition risks does Apple disclose?",
+        value=st.session_state.get("question", "What competition risks does Apple disclose?"),
+        key="question",
     )
     go = st.button("Run graph", type="primary")
     if not go and "last_run" not in st.session_state:
