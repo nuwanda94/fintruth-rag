@@ -28,7 +28,9 @@ Generation is blocked when any of these fire:
 Eval scoring is separate from generation gates. Keyword checks read the
 answer plus **cited** chunk text only; multi-ticker items with two or more
 gold keywords require every keyword (AND) so an uncited neighbor cannot
-complete a contrast.
+complete a contrast. Comparison items may also set `keywords_by_ticker`:
+each needle must appear in that issuer's cited spans (AAPL "revenue"
+cannot score the MSFT side of q013).
 
 Gate 5 is why `q016` / `q030` refuse instead of quoting FY2024 iPhone revenue.
 Gate 6 is why a comparison cannot quote only AAPL when the question also names MSFT.

@@ -34,6 +34,11 @@ def test_questions_jsonl_has_interview_floor() -> None:
     assert any(q.expected_numbers for q in items)
     ids = [q.id for q in items]
     assert len(ids) == len(set(ids))
+    by_id = {q.id: q for q in items}
+    assert by_id["q013"].keywords_by_ticker["AAPL"] == ["iphone", "revenue"]
+    assert by_id["q013"].keywords_by_ticker["MSFT"] == ["azure"]
+    assert by_id["q025"].keywords_by_ticker["META"] == ["regulatory"]
+    assert by_id["q032"].keywords_by_ticker["UNH"] == ["medical"]
 
 
 def test_extract_numbers_normalizes_currency() -> None:
@@ -144,6 +149,47 @@ def test_multi_ticker_keywords_require_all_cited_terms() -> None:
         chunks=[aapl_ok, msft_ok],
     )
     assert score_item(q, both).keyword_ok
+
+
+def test_multi_ticker_keywords_are_aligned_per_issuer() -> None:
+    """AAPL 'revenue' must not satisfy the MSFT side of a comparison."""
+    q = EvalQuestion(
+        id="align",
+        question="Compare Apple iPhone revenue with Microsoft Azure growth.",
+        tickers=["AAPL", "MSFT"],
+        must_cite=True,
+        keywords=["revenue", "azure"],
+        keywords_by_ticker={"AAPL": ["iphone", "revenue"], "MSFT": ["azure"]},
+        category="multi_ticker",
+    )
+    aapl = _chunk("AAPL:mda", "iPhone revenue increased year over year.", "AAPL")
+    msft_thin = _chunk("MSFT:mda", "Cloud workloads expanded.", "MSFT")
+    leaked = GroundedAnswer(
+        question=q.question,
+        answer="iPhone revenue increased [1]\nCloud workloads expanded [2]",
+        refused=False,
+        refusal_reason=None,
+        citations=[
+            Citation(1, aapl.chunk_id, "AAPL", "10-K", "mda", "2024-11-01"),
+            Citation(2, msft_thin.chunk_id, "MSFT", "10-K", "mda", "2024-11-01"),
+        ],
+        chunks=[aapl, msft_thin],
+    )
+    assert not score_item(q, leaked).keyword_ok
+
+    msft_ok = _chunk("MSFT:mda2", "Azure revenue continued to grow.", "MSFT")
+    aligned = GroundedAnswer(
+        question=q.question,
+        answer="iPhone revenue increased [1]\nAzure revenue continued to grow [2]",
+        refused=False,
+        refusal_reason=None,
+        citations=[
+            Citation(1, aapl.chunk_id, "AAPL", "10-K", "mda", "2024-11-01"),
+            Citation(2, msft_ok.chunk_id, "MSFT", "10-K", "mda", "2024-11-01"),
+        ],
+        chunks=[aapl, msft_ok],
+    )
+    assert score_item(q, aligned).keyword_ok
 
 
 def test_keywords_do_not_use_uncited_pool() -> None:

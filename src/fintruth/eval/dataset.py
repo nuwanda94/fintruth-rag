@@ -11,6 +11,19 @@ from fintruth.config import REPO_ROOT
 DEFAULT_EVAL_PATH = REPO_ROOT / "evals" / "questions.jsonl"
 
 
+def _keywords_by_ticker(raw: dict) -> dict[str, list[str]]:
+    mapping = raw.get("keywords_by_ticker") or {}
+    out: dict[str, list[str]] = {}
+    if not isinstance(mapping, dict):
+        return out
+    for ticker, needles in mapping.items():
+        key = str(ticker).upper().strip()
+        if not key:
+            continue
+        out[key] = [str(k).lower() for k in (needles or [])]
+    return out
+
+
 @dataclass(slots=True)
 class EvalQuestion:
     """One grounded-research item used by the eval runner."""
@@ -23,6 +36,7 @@ class EvalQuestion:
     expect_refuse: bool = False
     must_cite: bool = True
     keywords: list[str] = field(default_factory=list)
+    keywords_by_ticker: dict[str, list[str]] = field(default_factory=dict)
     difficulty: str = "medium"
     category: str = "general"
     expected_numbers: list[str] = field(default_factory=list)
@@ -38,6 +52,7 @@ class EvalQuestion:
             expect_refuse=bool(raw.get("expect_refuse", False)),
             must_cite=bool(raw.get("must_cite", True)),
             keywords=[str(k).lower() for k in (raw.get("keywords") or [])],
+            keywords_by_ticker=_keywords_by_ticker(raw),
             difficulty=str(raw.get("difficulty", "medium")),
             category=str(raw.get("category", "general")),
             expected_numbers=[str(n) for n in (raw.get("expected_numbers") or [])],

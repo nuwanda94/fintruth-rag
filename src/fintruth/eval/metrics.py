@@ -56,6 +56,20 @@ def _cited_haystack(result: GroundedAnswer) -> str:
     return " ".join([result.answer, _cited_chunk_texts(result)]).lower()
 
 
+def _cited_texts_by_ticker(result: GroundedAnswer) -> dict[str, str]:
+    """Cited span text keyed by citation ticker (payload fallback)."""
+    buckets: dict[str, list[str]] = {}
+    for cite in result.citations:
+        if not (1 <= cite.index <= len(result.chunks)):
+            continue
+        chunk = result.chunks[cite.index - 1]
+        ticker = (cite.ticker or str(chunk.payload.get("ticker", ""))).upper()
+        if not ticker:
+            continue
+        buckets.setdefault(ticker, []).append(chunk.text)
+    return {ticker: " ".join(texts).lower() for ticker, texts in buckets.items()}
+
+
 def _citation_indexes_valid(result: GroundedAnswer) -> bool:
     n = len(result.chunks)
     if not result.citations:
@@ -68,8 +82,25 @@ def score_keywords(question: EvalQuestion, result: GroundedAnswer) -> bool:
 
     Multi-ticker items with two or more gold keywords require *all* of them so a
     one-sided contrast cannot pass on a word that only lives in an uncited hit.
+
+    When ``keywords_by_ticker`` is set, each issuer's needles must appear in
+    *that issuer's cited spans* so "revenue" on AAPL cannot satisfy MSFT.
     """
-    if question.expect_refuse or not question.keywords:
+    if question.expect_refuse:
+        return True
+    per_issuer = {
+        ticker.upper(): [k.lower() for k in needles]
+        for ticker, needles in (question.keywords_by_ticker or {}).items()
+        if needles
+    }
+    if question.category == "multi_ticker" and per_issuer:
+        cited = _cited_texts_by_ticker(result)
+        for ticker, needles in per_issuer.items():
+            blob = cited.get(ticker, "")
+            if not all(k in blob for k in needles):
+                return False
+        return True
+    if not question.keywords:
         return True
     blob = _cited_haystack(result)
     needles = [k.lower() for k in question.keywords]
