@@ -9,7 +9,7 @@ from pathlib import Path
 from fintruth.config import Settings, get_settings
 from fintruth.ingestion.catalog import Catalog
 from fintruth.ingestion.chunker import Chunk, chunk_section
-from fintruth.ingestion.downloader import FilingRef, download_filings
+from fintruth.ingestion.downloader import download_filings
 from fintruth.ingestion.parser import parse_filing_html
 
 logger = logging.getLogger(__name__)
@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 def run_ingest(
     tickers: list[str] | None = None,
     settings: Settings | None = None,
+    max_filings: int | None = None,
 ) -> tuple[int, int]:
     """Download filings, write processed JSONL chunks, and upsert the SQLite catalog.
 
@@ -27,7 +28,7 @@ def run_ingest(
     processed_dir = Path(cfg.data_processed_dir)
     processed_dir.mkdir(parents=True, exist_ok=True)
 
-    refs = download_filings(tickers=tickers, settings=cfg)
+    refs = download_filings(tickers=tickers, settings=cfg, max_filings=max_filings)
     catalog = Catalog(settings=cfg)
     all_chunks: list[Chunk] = []
     filings_ok = 0

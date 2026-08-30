@@ -1,18 +1,19 @@
-.PHONY: help install lint test ingest index ask eval questions compare ui
+.PHONY: help install lint test ingest ingest-preflight index ask eval questions compare ui
 
 help:
 	@echo "FinTruth RAG"
-	@echo "  make install    - sync deps with uv"
-	@echo "  make lint       - ruff check"
-	@echo "  make test       - pytest"
-	@echo "  make ingest     - download + parse + chunk SEC filings"
-	@echo "  make index      - embed catalog chunks into Qdrant"
-	@echo "  make ask        - hybrid retrieve + grounded extractive answer"
-	@echo "  make compare    - dense vs hybrid vs +rerank on the demo corpus"
-	@echo "  make eval       - run seeded questions.jsonl (demo corpus if empty catalog)"
-	@echo "  make questions  - list seeded eval items"
-	@echo "  make ui         - Streamlit evidence demo (demo corpus)"
-	@echo "  make eval       writes evals/results/latest.json (demo snapshot is checked in)"
+	@echo "  make install           - sync deps with uv"
+	@echo "  make lint              - ruff check"
+	@echo "  make test              - pytest"
+	@echo "  make ingest-preflight  - check SEC_USER_AGENT / edgartools (no download)"
+	@echo "  make ingest            - download + parse + chunk SEC filings"
+	@echo "  make index             - embed catalog chunks into Qdrant"
+	@echo "  make ask               - hybrid retrieve + grounded extractive answer"
+	@echo "  make compare           - dense vs hybrid vs +rerank on the demo corpus"
+	@echo "  make eval              - run seeded questions.jsonl (demo corpus if empty catalog)"
+	@echo "  make questions         - list seeded eval items"
+	@echo "  make ui                - Streamlit evidence demo (demo corpus)"
+	@echo "  make eval              writes evals/results/latest.json (demo snapshot is checked in)"
 
 install:
 	uv sync --extra dev
@@ -22,6 +23,9 @@ lint:
 
 test:
 	uv run pytest -q
+
+ingest-preflight:
+	uv run python scripts/ingest.py --preflight
 
 ingest:
 	uv run python scripts/ingest.py

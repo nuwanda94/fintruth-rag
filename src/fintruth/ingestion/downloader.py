@@ -40,10 +40,12 @@ def download_filings(
     forms: list[str] | None = None,
     years: int | None = None,
     settings: Settings | None = None,
+    max_filings: int | None = None,
 ) -> list[FilingRef]:
     """Fetch recent 10-K/10-Q HTML for each ticker and write under data/raw.
 
     Returns lightweight refs even if a ticker fails so the pipeline can continue.
+    ``max_filings`` caps *successful* writes per ticker for a smoke ingest.
     """
     cfg = settings or get_settings()
     tickers = tickers or cfg.tickers
@@ -69,6 +71,8 @@ def download_filings(
             filings = company.get_filings(form=forms)
             count = 0
             for filing in filings:
+                if max_filings is not None and count >= max_filings:
+                    break
                 filing_date = str(getattr(filing, "filing_date", "") or "")
                 year = int(filing_date[:4]) if filing_date[:4].isdigit() else 0
                 if year and year < cutoff_year:
@@ -87,7 +91,10 @@ def download_filings(
                     if not html:
                         logger.warning("Empty HTML for %s %s %s", ticker, form, accession)
                         continue
-                    dest.write_text(html if isinstance(html, str) else html.decode("utf-8", "replace"), encoding="utf-8")
+                    dest.write_text(
+                        html if isinstance(html, str) else html.decode("utf-8", "replace"),
+                        encoding="utf-8",
+                    )
                 refs.append(
                     FilingRef(
                         ticker=ticker,
