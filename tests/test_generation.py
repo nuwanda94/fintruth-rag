@@ -1,9 +1,11 @@
 """Offline tests for citation parse, refusal, and extractive grounding."""
 
 from fintruth.generation.chain import (
+    asks_exact_figure,
     generate_answer,
     mentioned_tickers,
     parse_citations,
+    question_years,
     should_refuse,
 )
 from fintruth.generation.prompts import REFUSAL_PREFIX, build_messages, format_evidence_block
@@ -85,6 +87,59 @@ def test_multi_ticker_refuses_when_one_name_missing() -> None:
 
 def test_mentioned_tickers_dedupes() -> None:
     assert mentioned_tickers("AAPL vs MSFT vs AAPL") == ["AAPL", "MSFT"]
+
+
+def test_exact_figure_refuses_when_period_absent_from_text() -> None:
+    """q030-class: FY2012 units must not be answered from FY2024 iPhone revenue."""
+    assert asks_exact_figure("What was Apple's exact FY2012 greater-China iPhone unit volume?")
+    assert question_years("What was Apple's exact FY2012 greater-China iPhone unit volume?") == ["2012"]
+    chunks = [
+        _chunk(
+            "AAPL:demo:mda:0",
+            "iPhone revenue increased year over year. iPhone net sales were $201 billion for fiscal 2024.",
+            section="mda",
+        )
+    ]
+    result = generate_answer(
+        "What was Apple's exact FY2012 greater-China iPhone unit volume?",
+        chunks,
+        use_llm=False,
+    )
+    assert result.refused
+    assert "2012" in (result.refusal_reason or "")
+
+
+def test_exact_figure_answers_when_period_is_in_chunk_text() -> None:
+    chunks = [
+        _chunk(
+            "AAPL:mda:2012",
+            "Greater China iPhone unit volume was 26 million in fiscal 2012.",
+            section="mda",
+        )
+    ]
+    result = generate_answer(
+        "What was Apple's exact FY2012 greater-China iPhone unit volume?",
+        chunks,
+        use_llm=False,
+    )
+    assert not result.refused
+    assert "26 million" in result.answer
+
+
+def test_qualitative_mda_not_blocked_by_period_gate() -> None:
+    chunks = [
+        _chunk(
+            "AAPL:demo:mda:0",
+            "iPhone revenue increased year over year. iPhone net sales were $201 billion for fiscal 2024.",
+            section="mda",
+        )
+    ]
+    result = generate_answer(
+        "How does Apple describe iPhone revenue trends in MD&A?",
+        chunks,
+        use_llm=False,
+    )
+    assert not result.refused
 
 
 def test_llm_mode_parses_refusal_prefix() -> None:

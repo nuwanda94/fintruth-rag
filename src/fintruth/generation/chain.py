@@ -23,6 +23,11 @@ _TICKER = re.compile(
     r"\b(AAPL|MSFT|GOOGL|AMZN|META|NVDA|JPM|XOM|UNH|JNJ|TSLA|BRK)\b",
     re.I,
 )
+_YEAR = re.compile(r"\b(?:fy|fiscal\s+)?((?:19|20)\d{2})\b", re.I)
+_EXACT_FACT = re.compile(
+    r"\b(exact|unit volume|units?|deliveries|how many)\b",
+    re.I,
+)
 
 DEFAULT_MIN_SCORE = 0.012
 DEFAULT_MIN_OVERLAP = 1
@@ -149,11 +154,32 @@ def mentioned_tickers(question: str) -> list[str]:
     return seen
 
 
+def question_years(question: str) -> list[str]:
+    """Fiscal or calendar years mentioned in the question text."""
+    seen: list[str] = []
+    for match in _YEAR.finditer(question or ""):
+        year = match.group(1)
+        if year not in seen:
+            seen.append(year)
+    return seen
+
+
+def asks_exact_figure(question: str) -> bool:
+    """True when the asker wants a precise count/volume, not qualitative MD&A."""
+    return bool(_EXACT_FACT.search(question or ""))
+
+
 def _overlap_count(question: str, text: str) -> int:
     q = set(_TOKEN.findall(question.lower()))
     t = set(_TOKEN.findall(text.lower()))
     stop = {"the", "a", "an", "of", "and", "or", "in", "to", "for", "what", "does", "do"}
     return len((q - stop) & t)
+
+
+def _evidence_mentions_year(chunks: list[RetrievedChunk], years: list[str]) -> bool:
+    """Period must appear in chunk *text*, not merely in filing_date."""
+    blob = " ".join(c.text for c in chunks)
+    return any(year in blob for year in years)
 
 
 def should_refuse(
@@ -177,6 +203,10 @@ def should_refuse(
         return f"top retrieval score {best:.4f} below {min_score:.4f}"
     if not any(_overlap_count(question, c.text) >= min_overlap for c in chunks):
         return "retrieved chunks do not overlap the question terms"
+    if asks_exact_figure(question):
+        years = question_years(question)
+        if years and not _evidence_mentions_year(chunks, years):
+            return "asked period " + ", ".join(years) + " not present in retrieved evidence"
     return None
 
 
