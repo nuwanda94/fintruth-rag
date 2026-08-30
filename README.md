@@ -34,24 +34,45 @@ Ship a focused, deeply understood, measurable system demonstrating:
 - Reranker: Cohere or BGE-reranker
 - LLM: xAI Grok API (primary); extractive fallback without keys
 - Ingestion: edgartools + BeautifulSoup/lxml
-- Eval: RAGAS + custom numerical/citation checks
+- Eval: custom refusal/citation/keyword checks (RAGAS later)
 - UI: Streamlit | Observability: LangSmith / Langfuse
 
 ## Quick start (offline loop)
 
 ```bash
 uv sync --extra dev
+cp .env.example .env   # set SEC_USER_AGENT before live ingest
+
+# unit + integration smoke (no network, no API keys)
 uv run pytest -q
+# or: make test
+
+# retrieve → cited extractive answer on the built-in fixture
 uv run python scripts/ask.py --demo "What competition risks does Apple disclose?"
+# or: make ask
+
+# seeded eval set (18 questions) against the demo corpus
+uv run python scripts/run_eval.py --demo
+# or: make eval
+uv run python scripts/create_eval_set.py   # list items
 ```
 
-Live corpus (needs `SEC_USER_AGENT` in `.env`):
+## Live corpus (needs `SEC_USER_AGENT` in `.env`)
 
 ```bash
 uv run python scripts/ingest.py --tickers AAPL --years 1
+# or: make ingest
+
 uv run python scripts/index.py
+# or: make index
+
 uv run python scripts/ask.py "What competition risks does Apple disclose?" --ticker AAPL
+
+# same eval harness, now over catalog chunks if present
+uv run python scripts/run_eval.py
 ```
+
+Results land in `evals/results/latest.json`. Metrics are refusal accuracy, citation presence, keyword coverage, and ticker hit-rate — not yet RAGAS / numerical extraction.
 
 ## File Structure
 ```
