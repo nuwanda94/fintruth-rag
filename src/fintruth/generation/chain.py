@@ -120,12 +120,34 @@ def parse_model_output(
     return False, stripped, None, cites
 
 
+_NAME_TO_TICKER = {
+    "TESLA": "TSLA",
+    "APPLE": "AAPL",
+    "MICROSOFT": "MSFT",
+    "ALPHABET": "GOOGL",
+    "GOOGLE": "GOOGL",
+    "AMAZON": "AMZN",
+    "META": "META",
+    "FACEBOOK": "META",
+    "NVIDIA": "NVDA",
+    "JPMORGAN": "JPM",
+    "EXXON": "XOM",
+    "UNITEDHEALTH": "UNH",
+    "JOHNSON": "JNJ",
+    "BERKSHIRE": "BRK",
+}
+
+
 def mentioned_tickers(question: str) -> list[str]:
     """Tickers explicitly named in the question (interview-max universe)."""
     seen: list[str] = []
-    for match in _TICKER.findall(question.upper()):
+    upper = question.upper()
+    for match in _TICKER.findall(upper):
         if match not in seen:
             seen.append(match)
+    for name, ticker in _NAME_TO_TICKER.items():
+        if re.search(rf"\\b{name}\\b", upper) and ticker not in seen:
+            seen.append(ticker)
     return seen
 
 
@@ -146,17 +168,17 @@ def should_refuse(
     """Return a refusal reason, or None if generation may proceed."""
     if not chunks:
         return "no retrieved evidence"
+    wanted = mentioned_tickers(question)
+    if wanted:
+        present = {str(c.payload.get("ticker", "")).upper() for c in chunks}
+        missing = [tkr for tkr in wanted if tkr not in present]
+        if missing:
+            return "missing evidence for ticker(s) " + ", ".join(missing)
     best = max(c.score for c in chunks)
     if best < min_score:
         return f"top retrieval score {best:.4f} below {min_score:.4f}"
     if not any(_overlap_count(question, c.text) >= min_overlap for c in chunks):
         return "retrieved chunks do not overlap the question terms"
-    wanted = mentioned_tickers(question)
-    if len(wanted) >= 2:
-        present = {str(c.payload.get("ticker", "")).upper() for c in chunks}
-        missing = [t for t in wanted if t not in present]
-        if missing:
-            return "missing evidence for ticker(s) " + ", ".join(missing)
     return None
 
 
