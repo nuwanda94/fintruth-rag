@@ -5,6 +5,42 @@ Every run must append a new entry at the top (most recent first).
 
 ---
 
+## Iteration 9 — 2026-08-30 21:10 IST
+
+**Completed**
+- Week 3 Days 3–4 evaluation depth + interview docs (offline-first):
+  - `src/fintruth/eval/metrics.py` — `extract_numbers`, `score_numerical`, `score_citation_support`; ItemScore now includes `numerical_ok` + `citation_support_ok`; summary adds `numerical_accuracy` and `citation_support`
+  - `src/fintruth/eval/dataset.py` — optional `expected_numbers` on `EvalQuestion`
+  - `src/fintruth/eval/ablation.py` — dense vs hybrid vs hybrid+rerank keyword-in-top-k
+  - `src/fintruth/eval/runner.py` — demo AAPL MD&A chunk now carries `$201 billion`; `run_eval(..., with_ablation=True)` persists ablation next to scores
+  - `evals/questions.jsonl` — q002 gold number `201`
+  - `tests/test_eval.py` — numerical faithfulness, foreign-ticker citation reject, `latest.json` write to tmp, ablation arms
+  - `docs/limitations.md` and `docs/exceptional_work.md` filled (no longer stubs)
+  - README Streamlit walkthrough + metric description; `scripts/run_eval.py --no-ablation`
+
+**Current Status**
+- Week 1: foundation + offline end-to-end loop + thin eval **done**
+- Week 2: retrieval hardening + grounding/refusal + first-pass analysis **done offline**
+- Week 3 Days 1–2: graph + Streamlit **done offline**
+- Week 3 Days 3–4: custom numerical + citation-support checks + ablation helper + limitations/exceptional_work **done offline**
+- Week 3 Day 5: rehearsal / release tag **not started**
+- Live catalog ingest / RAGAS / published IR numbers **not started**
+
+**Next Iteration Should Pick Up**
+1. Week 3 Day 5: sharp-edge pass — persist a checked-in `evals/results/latest.json` from `make eval --demo` if the workspace is writable; tag a clean release if desired
+2. Smoke live ingest when `SEC_USER_AGENT` + EDGAR are available
+3. Optional: latency display in Streamlit; do not add RAGAS or multi-hop tools (out of remaining interview-max buffer unless time remains)
+
+**Blockers / Notes**
+- Demo `$201 billion` is a fixture figure for the numerical contract, not an SEC-extracted fact
+- Ablation keyword-in-top-k on hash embeddings is a harness check, not a quality claim
+- Writing `evals/results/` in CI still depends on a writable checkout; tests use tmp_path
+
+**Eval metrics**
+- Question bank n=34 with one gold-number item (q002). Composite contract unchanged (`> 0.5`). New summary keys: `numerical_accuracy`, `citation_support`.
+
+---
+
 ## Iteration 8 — 2026-08-30 20:01 IST
 
 **Completed**

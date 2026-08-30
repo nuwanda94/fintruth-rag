@@ -10,6 +10,19 @@ from fintruth.generation.chain import Citation, GroundedAnswer
 from fintruth.retrieval.hybrid import RetrievedChunk
 
 
+def _chunk(chunk_id: str, text: str, ticker: str, **payload: str) -> RetrievedChunk:
+    data = {"ticker": ticker, "form": "10-K", "section": "mda", "filing_date": "2024-11-01"}
+    data.update(payload)
+    return RetrievedChunk(
+        chunk_id=chunk_id,
+        text=text,
+        score=0.2,
+        dense_rank=1,
+        sparse_rank=None,
+        payload=data,
+    )
+
+
 def test_questions_jsonl_has_interview_floor() -> None:
     items = load_questions()
     assert len(items) >= 30
@@ -55,12 +68,7 @@ def test_numerical_score_requires_gold_in_answer_and_evidence() -> None:
         tickers=["AAPL"],
         expected_numbers=["201"],
     )
-    chunk = RetrievedChunk(
-        chunk_id="AAPL:demo:mda:0",
-        text="iPhone net sales were $201 billion for fiscal 2024.",
-        score=0.2,
-        payload={"ticker": "AAPL", "form": "10-K", "section": "mda", "filing_date": "2024-11-01"},
-    )
+    chunk = _chunk("AAPL:demo:mda:0", "iPhone net sales were $201 billion for fiscal 2024.", "AAPL")
     good = GroundedAnswer(
         question=q.question,
         answer="iPhone net sales were $201 billion [1]",
@@ -83,12 +91,7 @@ def test_numerical_score_requires_gold_in_answer_and_evidence() -> None:
 
 def test_citation_support_rejects_foreign_ticker() -> None:
     q = EvalQuestion(id="c", question="Apple risks?", tickers=["AAPL"], must_cite=True)
-    chunk = RetrievedChunk(
-        chunk_id="MSFT:x",
-        text="Microsoft faces competition",
-        score=0.2,
-        payload={"ticker": "MSFT"},
-    )
+    chunk = _chunk("MSFT:x", "Microsoft faces competition", "MSFT", section="risk_factors")
     result = GroundedAnswer(
         question=q.question,
         answer="competition [1]",
