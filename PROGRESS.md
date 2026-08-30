@@ -5,6 +5,43 @@ Every run must append a new entry at the top (most recent first).
 
 ---
 
+## Iteration 5 — 2026-08-30 17:00 IST
+
+**Completed**
+- Week 2 Days 1–2 retrieval hardening (offline-first):
+  - `src/fintruth/retrieval/reranker.py` — `LexicalReranker` (Jaccard + section hint + recency) + factory
+  - `src/fintruth/retrieval/hybrid.py` — optional rerank pool, `mode=dense|sparse|hybrid`, `RetrieveTrace` latency
+  - `src/fintruth/retrieval/filters.py` — `as_of` point-in-time cutoff (tightens `date_to`)
+  - `src/fintruth/retrieval/compare.py` — naive dense vs hybrid vs hybrid+rerank arms
+  - `tests/test_reranker.py` — rerank order, as-of drop of later filings, ablation smoke
+  - `scripts/ask.py` — `--compare`, `--no-rerank`, `--as-of`; prints rerank scores + latency
+  - Config / `.env.example`: `RERANKER_MODEL`, `RERANK_ENABLED`, `RERANK_POOL_K`
+  - Makefile `compare` target
+
+**Current Status**
+- Week 1: foundation + offline end-to-end loop + thin eval **done** (not live-run against SEC)
+- Week 2 Days 1–2: reranker + temporal as-of + ablation helper **implemented offline**
+- Week 2 Days 3–4 (stronger generation/refusal, 30–40 questions, live ablation numbers) **not started**
+- No Cohere/cross-encoder network call yet (lexical stand-in by design)
+
+**Next Iteration Should Pick Up**
+1. Week 2 Days 3–4: stronger grounding + explicit refusal path polish + citation formatting
+2. Expand `evals/questions.jsonl` toward 30–40 hard items (keep demo-compatible golds)
+3. Optional: call xAI Grok from `generate_answer` when `XAI_API_KEY` is set
+4. Persist first `evals/results/` numbers from a real catalog when ingest is available
+5. Smoke live ingest when `SEC_USER_AGENT` + network are available
+
+**Blockers / Notes**
+- Lexical reranker is deterministic and interview-defendable as a baseline; swap to Cohere/BGE without changing `Reranker` protocol
+- Hash embedder still used; do not treat demo ablation ranks as quality claims
+- Live ingest still needs a valid `SEC_USER_AGENT` and EDGAR access
+- Chunking not yet refined from real failure analysis (no live failures yet)
+
+**Eval metrics**
+- Harness unchanged this iteration; no live-catalog numbers. Demo composite still expected > 0.5.
+
+---
+
 ## Iteration 4 — 2026-08-30 16:01 IST
 
 **Completed**

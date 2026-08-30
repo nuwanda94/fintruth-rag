@@ -3,6 +3,7 @@
 Usage:
     uv run python scripts/ask.py "What competition risks does Apple disclose?"
     uv run python scripts/ask.py "iPhone revenue" --ticker AAPL --section mda
+    uv run python scripts/ask.py "Apple competition" --demo --compare
 
 Without a populated catalog this still demos the loop on a tiny in-memory
 fixture so the retrieve → cite path is exercisable offline.
@@ -23,6 +24,7 @@ from fintruth.indexing.embedder import build_embedder  # noqa: E402
 from fintruth.indexing.qdrant_store import InMemoryVectorStore, index_payloads  # noqa: E402
 from fintruth.ingestion.catalog import Catalog  # noqa: E402
 from fintruth.logging import setup_logging  # noqa: E402
+from fintruth.retrieval.compare import compare_retrievers  # noqa: E402
 from fintruth.retrieval.filters import RetrievalFilters  # noqa: E402
 from fintruth.retrieval.hybrid import HybridRetriever  # noqa: E402
 
@@ -84,9 +86,12 @@ def main() -> int:
     parser.add_argument("--ticker", action="append", dest="tickers", default=None)
     parser.add_argument("--section", action="append", dest="sections", default=None)
     parser.add_argument("--form", action="append", dest="forms", default=None)
+    parser.add_argument("--as-of", dest="as_of", default=None, help="Point-in-time ISO date cutoff")
     parser.add_argument("--k", type=int, default=None, help="Final evidence count")
     parser.add_argument("--limit", type=int, default=None, help="Max catalog chunks to load")
     parser.add_argument("--demo", action="store_true", help="Force the built-in demo corpus")
+    parser.add_argument("--no-rerank", action="store_true", help="Skip the lexical reranker")
+    parser.add_argument("--compare", action="store_true", help="Print dense vs hybrid vs +rerank")
     args = parser.parse_args()
 
     setup_logging()
@@ -101,11 +106,30 @@ def main() -> int:
         tickers=args.tickers or [],
         forms=args.forms or [],
         sections=args.sections or [],
+        as_of=args.as_of,
     )
-    chunks = retriever.retrieve(args.question, filters=filters, final_k=args.k)
-    result = generate_answer(args.question, chunks)
+    if args.compare:
+        print("# Ablation  dense vs hybrid vs hybrid+rerank")
+        for arm in compare_retrievers(retriever, args.question, filters=filters, final_k=args.k or 5):
+            trace = arm.traces
+            latency = f"{trace.latency_ms:.1f}ms" if trace else "?"
+            print(f"  {arm.name:16} {latency:>8}  {arm.chunk_ids}")
+        print()
 
-    print(f"# FinTruth ask  corpus={source}  n_chunks={len(payloads)}  hits={len(chunks)}")
+    chunks = retriever.retrieve(
+        args.question,
+        filters=filters,
+        final_k=args.k,
+        rerank=not args.no_rerank,
+    )
+    result = generate_answer(args.question, chunks)
+    trace = retriever.last_trace
+
+    print(
+        f"# FinTruth ask  corpus={source}  n_chunks={len(payloads)}  "
+        f"hits={len(chunks)}  rerank={not args.no_rerank}  "
+        f"latency_ms={trace.latency_ms:.1f}" if trace else ""
+    )
     print(f"Q: {args.question}")
     print()
     print(result.answer)
@@ -124,7 +148,11 @@ def main() -> int:
             f"{chunk.payload.get('ticker')} {chunk.payload.get('form')} "
             f"{chunk.payload.get('section')} {chunk.payload.get('filing_date')}"
         )
-        print(f"  [{i}] score={chunk.score:.4f} dense={chunk.dense_rank} sparse={chunk.sparse_rank} {meta}")
+        rr = f"{chunk.rerank_score:.4f}" if chunk.rerank_score is not None else "-"
+        print(
+            f"  [{i}] score={chunk.score:.4f} rerank={rr} "
+            f"dense={chunk.dense_rank} sparse={chunk.sparse_rank} {meta}"
+        )
         preview = chunk.text.replace("\n", " ")[:180]
         print(f"      {preview}")
     return 0

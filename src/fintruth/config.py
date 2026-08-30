@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     embedding_dim: int = 256
 
     cohere_api_key: str = ""
+    reranker_model: str = "lexical"
+    rerank_enabled: bool = True
+    rerank_pool_k: int = 24
 
     qdrant_url: str = "http://localhost:6333"
     qdrant_api_key: str = ""

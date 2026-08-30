@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import math
 import re
+import time
 from collections import Counter, defaultdict
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 from fintruth.config import Settings, get_settings
 from fintruth.indexing.embedder import Embedder, build_embedder
@@ -14,6 +15,8 @@ from fintruth.indexing.qdrant_store import ScoredPoint, VectorStore
 from fintruth.retrieval.filters import RetrievalFilters
 
 _TOKEN = re.compile(r"[a-z0-9$%]+", re.I)
+
+RetrieveMode = Literal["hybrid", "dense", "sparse"]
 
 
 @dataclass(slots=True)
@@ -26,6 +29,21 @@ class RetrievedChunk:
     dense_rank: int | None
     sparse_rank: int | None
     payload: dict[str, Any]
+    rerank_score: float | None = None
+
+
+@dataclass(slots=True)
+class RetrieveTrace:
+    """Latency / pool sizes for naive vs hybrid vs +rerank comparisons."""
+
+    query: str
+    mode: str
+    reranked: bool
+    n_dense: int
+    n_sparse: int
+    n_fused: int
+    n_returned: int
+    latency_ms: float
 
 
 def tokenize(text: str) -> list[str]:
@@ -95,18 +113,21 @@ def reciprocal_rank_fusion(
 
 
 class HybridRetriever:
-    """Dense kNN + sparse BM25 fused with RRF, then metadata-filtered."""
+    """Dense kNN + sparse BM25 fused with RRF, optionally reranked."""
 
     def __init__(
         self,
         store: VectorStore,
         embedder: Embedder | None = None,
         settings: Settings | None = None,
+        reranker: Any | None = None,
     ) -> None:
         self.store = store
         self.settings = settings or get_settings()
         self.embedder = embedder or build_embedder(self.settings)
         self.sparse = SparseIndex()
+        self.reranker = reranker
+        self.last_trace: RetrieveTrace | None = None
 
     def add_sparse_corpus(self, payloads: list[dict[str, Any]]) -> None:
         for payload in payloads:
@@ -114,30 +135,54 @@ class HybridRetriever:
             if chunk_id:
                 self.sparse.add(chunk_id, payload)
 
+    def _ensure_reranker(self) -> Any:
+        if self.reranker is None:
+            from fintruth.retrieval.reranker import build_reranker
+
+            self.reranker = build_reranker(self.settings)
+        return self.reranker
+
     def retrieve(
         self,
         query: str,
         filters: RetrievalFilters | None = None,
         final_k: int | None = None,
+        *,
+        mode: RetrieveMode = "hybrid",
+        rerank: bool | None = None,
     ) -> list[RetrievedChunk]:
+        started = time.perf_counter()
         cfg = self.settings
         filters = filters or RetrievalFilters()
-        qvec = self.embedder.embed_query(query)
-        dense = self.store.search(
-            qvec,
-            limit=cfg.retrieve_dense_k,
-            where=filters.to_where() or None,
-        )
-        dense = [p for p in dense if filters.allows(p.payload)]
-        sparse = self.sparse.search(query, limit=cfg.retrieve_sparse_k, filters=filters)
+        limit = final_k or cfg.retrieve_final_k
+        do_rerank = cfg.rerank_enabled if rerank is None else rerank
+        pool_k = max(limit, cfg.rerank_pool_k if do_rerank else limit)
+
+        dense: list[ScoredPoint] = []
+        sparse: list[ScoredPoint] = []
+        if mode in {"hybrid", "dense"}:
+            qvec = self.embedder.embed_query(query)
+            dense = self.store.search(
+                qvec,
+                limit=cfg.retrieve_dense_k,
+                where=filters.to_where() or None,
+            )
+            dense = [p for p in dense if filters.allows(p.payload)]
+        if mode in {"hybrid", "sparse"}:
+            sparse = self.sparse.search(query, limit=cfg.retrieve_sparse_k, filters=filters)
 
         dense_rank = {p.chunk_id: i + 1 for i, p in enumerate(dense)}
         sparse_rank = {p.chunk_id: i + 1 for i, p in enumerate(sparse)}
-        fused = reciprocal_rank_fusion([dense, sparse])
-        limit = final_k or cfg.retrieve_final_k
-        out: list[RetrievedChunk] = []
-        for chunk_id, score, payload in fused[:limit]:
-            out.append(
+        if mode == "dense":
+            fused = [(p.chunk_id, float(p.score), p.payload) for p in dense]
+        elif mode == "sparse":
+            fused = [(p.chunk_id, float(p.score), p.payload) for p in sparse]
+        else:
+            fused = reciprocal_rank_fusion([dense, sparse])
+
+        pool: list[RetrievedChunk] = []
+        for chunk_id, score, payload in fused[:pool_k]:
+            pool.append(
                 RetrievedChunk(
                     chunk_id=chunk_id,
                     text=str(payload.get("text", "")),
@@ -147,4 +192,20 @@ class HybridRetriever:
                     payload=payload,
                 )
             )
+
+        if do_rerank:
+            out = self._ensure_reranker().rerank(query, pool, limit)
+        else:
+            out = pool[:limit]
+
+        self.last_trace = RetrieveTrace(
+            query=query,
+            mode=mode,
+            reranked=do_rerank,
+            n_dense=len(dense),
+            n_sparse=len(sparse),
+            n_fused=len(fused),
+            n_returned=len(out),
+            latency_ms=(time.perf_counter() - started) * 1000.0,
+        )
         return out
