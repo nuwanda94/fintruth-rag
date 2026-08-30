@@ -116,6 +116,8 @@ def test_demo_eval_runs_and_refuses_out_of_corpus() -> None:
     by_id = {row["id"]: row for row in run.items}
     assert by_id["q015"]["refused"] is True
     assert by_id["q029"]["refused"] is True
+    assert by_id["q030"]["refused"] is True
+    assert "2012" in (by_id["q030"]["refusal_reason"] or "")
     assert by_id["q001"]["refused"] is False
     assert by_id["q001"]["citations"]
     assert "Sources:" in by_id["q001"]["answer"]
