@@ -172,7 +172,8 @@ def evaluate_question(
         sections=question.sections,
     )
     chunks = retriever.retrieve(question.question, filters=filters, final_k=final_k)
-    result = generate_answer(question.question, chunks)
+    # Eval stays extractive so scores are deterministic even if XAI_API_KEY is set.
+    result = generate_answer(question.question, chunks, use_llm=False)
     score = score_item(question, result)
     row = {
         "id": question.id,
