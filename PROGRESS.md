@@ -5,6 +5,41 @@ Every run must append a new entry at the top (most recent first).
 
 ---
 
+## Iteration 11 — 2026-08-30 23:00 IST
+
+**Completed**
+- Week 3 Day 5 follow-on: live-ingest gate + v0.1.0 packaging notes (still offline).
+  - `src/fintruth/ingestion/preflight.py` — SEC_USER_AGENT placeholder detect, edgartools import, data dirs; optional `data.sec.gov` GET
+  - `scripts/ingest.py --preflight` / `--check-network` / `--max-filings`; live download refused on example User-Agent
+  - `download_filings` / `run_ingest` honor per-ticker `max_filings` for a 1-filing smoke
+  - `make ingest-preflight`; tests in `tests/test_ingest_preflight.py` + changelog guard in `tests/test_docs.py`
+  - `CHANGELOG.md` documents what `v0.1.0` means (create-tag API not available)
+  - README / walkthrough / `.env.example` updated so rehearsal matches the gate
+
+**Current Status**
+- Week 1: foundation + offline end-to-end loop + thin eval **done**
+- Week 2: retrieval hardening + grounding/refusal + first-pass analysis **done offline**
+- Week 3 Days 1–5: graph + Streamlit + eval docs + rehearsal + ingest preflight **done offline**
+- Interview-max offline package is complete; live EDGAR still blocked on a real User-Agent + network
+- Git annotated tag `v0.1.0` **not created** (no create-tag tool); changelog is the contract
+
+**Next Iteration Should Pick Up**
+1. With a real `SEC_USER_AGENT`, run `make ingest-preflight` then `--tickers AAPL --years 1 --max-filings 1`
+2. If chunks land, `scripts/index.py` + `scripts/run_eval.py` (no `--demo`) and refresh `evals/results/latest.json` only if the catalog is non-empty
+3. Create annotated tag locally: `git tag -a v0.1.0 -m "interview-max offline"` (optional)
+4. Rehearse `docs/walkthrough.md` against Streamlit; fix only script-breaking edges
+5. Do not add RAGAS, multi-hop tools, or Docker polish
+
+**Blockers / Notes**
+- Default `.env.example` address is intentionally rejected so we never hit EDGAR as `contact@example.com`
+- Demo snapshot residual miss remains `q030`
+- Ablation 1.0 scores are fixture-only
+
+**Eval metrics**
+- Unchanged demo run in `evals/results/latest.json`: n=34, composite ≈ 0.990
+
+---
+
 ## Iteration 10 — 2026-08-30 22:00 IST
 
 **Completed**

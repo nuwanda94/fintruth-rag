@@ -34,4 +34,11 @@ def test_walkthrough_exists() -> None:
     text = (REPO_ROOT / "docs" / "walkthrough.md").read_text(encoding="utf-8")
     assert "10" in text and "minute" in text.lower()
     assert "refuse" in text.lower()
+    assert "ingest-preflight" in text
     assert len(text) > 400
+
+
+def test_changelog_describes_v010() -> None:
+    text = (REPO_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    assert "0.1.0" in text
+    assert "q030" in text

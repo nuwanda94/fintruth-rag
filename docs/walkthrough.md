@@ -50,3 +50,7 @@ Walk D1–D9 in `docs/design_decisions.md` and the first page of `docs/limitatio
 ## 6. What more time buys (1 min)
 
 Live EDGAR catalog + voyage/Cohere + RAGAS on real filings; parent-document chunks; numerical unit parser. Do not promise multi-hop agents in this package.
+
+Live ingest is gated: `make ingest-preflight` then
+`uv run python scripts/ingest.py --tickers AAPL --years 1 --max-filings 1`
+once `SEC_USER_AGENT` is a real name + email. Tag meaning: `CHANGELOG.md` / `0.1.0`.

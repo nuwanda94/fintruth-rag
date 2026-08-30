@@ -3,6 +3,8 @@
 **SEC-Grounded Financial Research Assistant**  
 High-signal RAG project optimized for an xAI / Grok interview deep-dive.
 
+Package version: **0.1.0** (see [CHANGELOG.md](CHANGELOG.md)). Offline interview-max loop is complete; live EDGAR is gated behind preflight.
+
 ## Goal
 Ship a focused, deeply understood, measurable system demonstrating:
 - Strong retrieval engineering (hybrid + metadata/temporal filtering + reranker)
@@ -73,10 +75,15 @@ Walkthrough:
 
 See [docs/architecture.md](docs/architecture.md), [docs/limitations.md](docs/limitations.md), and [docs/exceptional_work.md](docs/exceptional_work.md).
 
-## Live corpus (needs `SEC_USER_AGENT` in `.env`)
+## Live corpus (needs a real `SEC_USER_AGENT` in `.env`)
+
+The committed example address is treated as a placeholder. Live download is refused until you change it.
 
 ```bash
-uv run python scripts/ingest.py --tickers AAPL --years 1
+make ingest-preflight
+# optional: uv run python scripts/ingest.py --preflight --check-network
+
+uv run python scripts/ingest.py --tickers AAPL --years 1 --max-filings 1
 # or: make ingest
 
 uv run python scripts/index.py
@@ -93,7 +100,7 @@ Results land in `evals/results/latest.json`. Metrics: refusal accuracy, citation
 ## File Structure
 ```
 fintruth-rag/
-├── README.md, pyproject.toml, .env.example, Makefile, PROGRESS.md
+├── README.md, pyproject.toml, .env.example, Makefile, PROGRESS.md, CHANGELOG.md
 ├── data/{raw, processed, catalog.db}
 ├── src/fintruth/{config.py, ingestion/, indexing/, retrieval/, generation/, agent/, eval/, ui/}
 ├── scripts/{ingest.py, index.py, ask.py, run_eval.py, create_eval_set.py}
