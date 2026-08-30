@@ -1,25 +1,15 @@
 # Architecture
 
-Current shape of the interview-max system. Week 3 will expand this with
-the LangGraph loop and Streamlit evidence panel.
+Offline-first pipeline matching the current modules:
 
 ```
-SEC filings (edgartools) → parser (MD&A / risk / notes)
-  → chunker (512 / 64 + metadata payload)
-  → SQLite catalog + processed JSON
-  → embedder (hash-local today; voyage/OpenAI hook)
-  → VectorStore (in-memory today; Qdrant hook)
-  → HybridRetriever (dense kNN + BM25 + RRF ± lexical rerank)
-  → RetrievalFilters (ticker / form / section / as_of)
-  → generate_answer (extractive default, optional Grok)
-       ├ should_refuse gates
-       ├ [n] citations + Sources footer
-       └ REFUSAL: otherwise
-  → eval runner (questions.jsonl → evals/results/*.json)
+SEC / demo fixture
+    → ingestion (download → parse sections → chunk → SQLite catalog)
+    → indexing (hash/API embedder → InMemoryVectorStore or Qdrant)
+    → retrieval (dense kNN + sparse BM25 → RRF → lexical rerank + as_of filters)
+    → agent graph (retrieve → grade → generate | refuse)
+    → generation (extractive default; optional Grok + citation/refusal gates)
+    → eval harness / Streamlit evidence UI / ask.py CLI
 ```
 
-Default runtime is fully offline. Network is used only for EDGAR ingest
-and optional `https://api.x.ai/v1/chat/completions`.
-
-See `docs/design_decisions.md` for why each box exists and
-`evals/failure_analysis.md` for known holes on the demo corpus.
+Week 3 loop is `TruthSeekingGraph` in `src/fintruth/agent/graph.py`. LangGraph is an optional compile of the same nodes; tests run the typed state machine with no extra deps.

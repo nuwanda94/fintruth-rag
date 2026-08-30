@@ -29,6 +29,7 @@ index = [
     "qdrant-client>=1.10",
     "langchain>=0.3",
     "langchain-core>=0.3",
+    "langgraph>=0.2",
 ]
 ui = [
     "streamlit>=1.36",

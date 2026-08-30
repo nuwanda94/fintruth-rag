@@ -1,4 +1,4 @@
-.PHONY: help install lint test ingest index ask eval questions compare
+.PHONY: help install lint test ingest index ask eval questions compare ui
 
 help:
 	@echo "FinTruth RAG"
@@ -11,6 +11,7 @@ help:
 	@echo "  make compare    - dense vs hybrid vs +rerank on the demo corpus"
 	@echo "  make eval       - run seeded questions.jsonl (demo corpus if empty catalog)"
 	@echo "  make questions  - list seeded eval items"
+	@echo "  make ui         - Streamlit evidence demo (demo corpus)"
 
 install:
 	uv sync --extra dev
@@ -38,3 +39,6 @@ eval:
 
 questions:
 	uv run python scripts/create_eval_set.py
+
+ui:
+	uv run --extra ui streamlit run src/fintruth/ui/app.py
