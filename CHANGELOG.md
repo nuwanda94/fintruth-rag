@@ -12,6 +12,7 @@ Interview-max offline package.
 - Section-aware ingest scaffold (edgartools + MD&A / Risk Factors chunker + SQLite catalog)
 - Hybrid retrieve (dense + sparse + RRF) with metadata / as-of filters and lexical rerank
 - Extractive grounded generation with citations and issuer-aware refusal
+- Period gate: exact-figure questions refuse when the asked year is missing from chunk text (`q030`)
 - Minimal retrieve → grade → generate|refuse graph + Streamlit evidence UI
 - Seeded eval harness (n=34) with refusal / citation / keyword / numerical contract metrics
 - Retrieval ablation helper (dense vs hybrid vs +rerank) on the demo fixture
@@ -24,4 +25,4 @@ Interview-max offline package.
 - Docker, multi-hop tools, XBRL, parent-document retrieval
 
 ### Demo snapshot (not IR quality)
-See `evals/results/latest.json`. Residual miss: `q030`.
+See `evals/results/latest.json`. `q030` is covered by the period gate (expected refuse).

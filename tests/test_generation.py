@@ -145,7 +145,7 @@ def test_qualitative_mda_not_blocked_by_period_gate() -> None:
 def test_llm_mode_parses_refusal_prefix() -> None:
     chunks = [_chunk("a", "Apple faces intense competition.")]
     result = generate_answer(
-        "question",
+        "What competition risks does Apple disclose?",
         chunks,
         model_text="REFUSAL: evidence does not address the period asked",
     )

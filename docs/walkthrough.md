@@ -10,7 +10,7 @@ FinTruth is a *strictly grounded* SEC research assistant. Scope is 8–12 large-
 
 Ingest → section chunks → hybrid dense+sparse RRF → lexical rerank → grade → generate or refuse.
 
-Point at `docs/architecture.md`. Offline default is hash embeddings + `InMemoryVectorStore` so the loop is deterministic without keys.
+Point at `docs/architecture.md`. Offline default is hash embeddings + `InMemoryVectorStore` so the loop is deterministic without keys. Call out grade gate 5: exact-figure + year must appear in chunk *text*.
 
 ## 2. Live easy query (2 min)
 
@@ -27,7 +27,9 @@ Show: answer text, `[n]` citations, chunk scores, ticker/section/date, retrieve 
 
 Ask: *Did Tesla disclose Cybertruck unit deliveries in its latest 10-K?*
 
-Show the refusal banner. Explain grade gates (`should_refuse`) plus extractive generator still refusing if grade is optimistic.
+Show the refusal banner (missing issuer). Follow with *What was Apple's exact FY2012 greater-China iPhone unit volume?* — that refuses because 2012 is not in the FY2024 MD&A snippet, even though "iPhone" overlaps.
+
+Explain grade gates (`should_refuse`) plus extractive generator still refusing if grade is optimistic.
 
 ## 4. Eval + ablation (3 min)
 
@@ -41,11 +43,11 @@ Open `evals/results/latest.json`:
 - contract metrics: refusal, citation presence, citation ticker support, keyword, ticker, numerical
 - retrieval ablation arms: dense / hybrid / hybrid+rerank (keyword-in-top-k on the **demo** fixture — not IR quality)
 
-Name residual failure `q030` (FY2012 greater-China units not in corpus → should refuse; see `evals/failure_analysis.md`).
+`q030` is the designed period-absent case; after the period gate it should refuse. See `evals/failure_analysis.md`.
 
 ## 5. Decisions and limits (2 min)
 
-Walk D1–D9 in `docs/design_decisions.md` and the first page of `docs/limitations.md`. Emphasize: hash embedder is wiring; demo `$201 billion` is a harness figure; Grok is optional.
+Walk D1–D10 in `docs/design_decisions.md` and the first page of `docs/limitations.md`. Emphasize: hash embedder is wiring; demo `$201 billion` is a harness figure; Grok is optional.
 
 ## 6. What more time buys (1 min)
 
