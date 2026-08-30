@@ -5,6 +5,38 @@ Every run must append a new entry at the top (most recent first).
 
 ---
 
+## Iteration 3 — 2026-08-30 15:00 IST
+
+**Completed**
+- Finished Week 1 Days 3–4 grounded generation increment (offline-first):
+  - `src/fintruth/generation/prompts.py` — system prompt, numbered evidence blocks, chat messages
+  - `src/fintruth/generation/chain.py` — `GroundedAnswer`, `[n]` citation parse, score/overlap refusal, extractive fallback, LLM-text adapter
+  - `scripts/ask.py` — question → hybrid retrieve → cited extractive answer (catalog or `--demo` fixture)
+  - `tests/test_generation.py` — citation mapping, refusal, extractive cites, retrieve→generate smoke
+- Makefile `ask` target; `generation/__init__.py` exports
+
+**Current Status**
+- Week 1 Days 1–2: ingestion pipeline implemented (not live-run against SEC)
+- Week 1 Days 3–4: embed + hybrid retrieve + grounded prompt/citation/refusal **implemented and tested offline**; live Grok completion not wired yet
+- Week 1 Day 5: eval set + README run instructions **not started**
+
+**Next Iteration Should Pick Up**
+1. Week 1 Day 5: seed `evals/questions.jsonl` with 15–20 hard questions + minimal `src/fintruth/eval/runner.py`
+2. docs: README run instructions (`ingest` / `index` / `ask` / `pytest`)
+3. Optional: call xAI Grok from `generate_answer` when `XAI_API_KEY` is set
+4. Smoke live ingest when `SEC_USER_AGENT` + network are available
+
+**Blockers / Notes**
+- Extractive mode is the default so the loop works without LLM keys
+- Hash embedder still used; replace before real eval quality claims
+- Live ingest still needs a valid `SEC_USER_AGENT` and EDGAR access
+- No eval metrics yet
+
+**Eval metrics**
+- n/a
+
+---
+
 ## Iteration 2 — 2026-08-30 14:01 IST
 
 **Completed**
