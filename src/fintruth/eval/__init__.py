@@ -5,6 +5,8 @@ from fintruth.eval.dataset import EvalQuestion, load_questions
 from fintruth.eval.metrics import (
     ItemScore,
     extract_numbers,
+    extract_quantities,
+    parse_quantity,
     resolve_cited_chunk,
     score_item,
     summarize,
@@ -16,6 +18,8 @@ __all__ = [
     "EvalQuestion",
     "ItemScore",
     "extract_numbers",
+    "extract_quantities",
+    "parse_quantity",
     "load_questions",
     "resolve_cited_chunk",
     "run_eval",

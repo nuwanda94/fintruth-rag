@@ -25,7 +25,7 @@ Interview-max scope only. See ROADMAP.md §2 OUT list. These are the constraints
 ## Evaluation
 
 - Metrics are binary contract checks (refusal agreement, citation presence, citation ticker support, keyword coverage, ticker hit, optional gold numbers). They are **not** RAGAS faithfulness / answer-relevancy and must not be presented as such.
-- Numerical checks only fire when `expected_numbers` is set, or when the item is `numerical_absent` / `expect_refuse`. There is no unit-aware quantity parser ("$201 billion" vs "201 million").
+- Numerical checks fire when `expected_numbers` is set, or when the item is `numerical_absent` / `expect_refuse`. Scale-aware tokens (`201 billion`) must match magnitude; bare `201` still matches any scale. Synonyms like "handsets shipped" are not modeled.
 - Ablation rates compare keyword-in-top-k across dense / hybrid / hybrid+rerank on the **same demo corpus**. Do not treat arm deltas as production IR quality.
 - `evals/results/latest.json` is a checked-in **demo-corpus** snapshot (n=34). Live-catalog numbers still require ingest credentials.
 

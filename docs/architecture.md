@@ -23,7 +23,8 @@ Generation is blocked when any of these fire:
 3. Top fused score below `DEFAULT_MIN_SCORE`
 4. No term overlap between question and chunk text
 5. Exact-figure question ("exact" / "unit volume" / "units" / "deliveries") names a year that does **not** appear in chunk text (filing_date alone is not enough)
-6. Multi-ticker question whose citations omit a named issuer (extractive selection covers issuers first; LLM answers that cite only one side are refused)
+6. Exact unit-volume question whose chunks have no number paired with units/deliveries/shipments (dollar revenue is not a substitute)
+7. Multi-ticker question whose citations omit a named issuer (extractive selection covers issuers first; LLM answers that cite only one side are refused)
 
 Eval scoring is separate from generation gates. Keyword checks read the
 answer plus **cited** chunk text only; multi-ticker items with two or more
@@ -37,7 +38,9 @@ The `[n]` marker is still a 1-based retrieve-list index for the model; after
 rerank the eval harness must not treat that index as identity.
 
 Gate 5 is why `q016` / `q030` refuse instead of quoting FY2024 iPhone revenue.
-Gate 6 is why a comparison cannot quote only AAPL when the question also names MSFT.
+Gate 6 is why a FY2012 *revenue* sentence cannot answer a unit-volume ask.
+Gate 7 is why a comparison cannot quote only AAPL when the question also names MSFT.
+Eval gold numbers may include a scale (`201 billion` on q002).
 
 ## Default data path
 
