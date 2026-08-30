@@ -92,6 +92,11 @@ def main() -> int:
     parser.add_argument("--demo", action="store_true", help="Force the built-in demo corpus")
     parser.add_argument("--no-rerank", action="store_true", help="Skip the lexical reranker")
     parser.add_argument("--compare", action="store_true", help="Print dense vs hybrid vs +rerank")
+    parser.add_argument(
+        "--extractive",
+        action="store_true",
+        help="Force the offline extractive path even if XAI_API_KEY is set",
+    )
     args = parser.parse_args()
 
     setup_logging()
@@ -122,12 +127,12 @@ def main() -> int:
         final_k=args.k,
         rerank=not args.no_rerank,
     )
-    result = generate_answer(args.question, chunks)
+    result = generate_answer(args.question, chunks, use_llm=False if args.extractive else None)
     trace = retriever.last_trace
 
     print(
         f"# FinTruth ask  corpus={source}  n_chunks={len(payloads)}  "
-        f"hits={len(chunks)}  rerank={not args.no_rerank}  "
+        f"hits={len(chunks)}  rerank={not args.no_rerank}  mode={result.mode}  "
         f"latency_ms={trace.latency_ms:.1f}" if trace else ""
     )
     print(f"Q: {args.question}")
@@ -137,10 +142,7 @@ def main() -> int:
     if result.citations:
         print("Citations:")
         for cite in result.citations:
-            print(
-                f"  [{cite.index}] {cite.ticker} {cite.form} {cite.section} "
-                f"{cite.filing_date}  {cite.chunk_id}"
-            )
+            print(f"  {cite.format_line()}")
     print()
     print("Evidence:")
     for i, chunk in enumerate(chunks, start=1):
