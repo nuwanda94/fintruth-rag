@@ -105,8 +105,8 @@ def test_citation_support_rejects_foreign_ticker() -> None:
     assert not score_item(q, result).citation_support_ok
 
 
-def test_keywords_ignore_uncited_retrieve_hits() -> None:
-    """A thin citation cannot pass because an uncited neighbor contains the gold word."""
+def test_multi_ticker_keywords_require_all_cited_terms() -> None:
+    """AND over gold keywords; missing one term fails even if both issuers are cited."""
     q = EvalQuestion(
         id="kw",
         question="Compare Apple iPhone revenue with Microsoft Azure growth.",
@@ -116,10 +116,10 @@ def test_keywords_ignore_uncited_retrieve_hits() -> None:
         category="multi_ticker",
     )
     aapl = _chunk("AAPL:mda", "Apple services mix shifted.", "AAPL")
-    msft = _chunk("MSFT:mda", "Azure revenue continued to grow.", "MSFT")
-    one_sided = GroundedAnswer(
+    msft = _chunk("MSFT:mda", "Cloud workloads expanded.", "MSFT")
+    thin = GroundedAnswer(
         question=q.question,
-        answer="Services mix shifted [1]\nAzure revenue continued to grow [2]",
+        answer="Services mix shifted [1]\nCloud workloads expanded [2]",
         refused=False,
         refusal_reason=None,
         citations=[
@@ -128,10 +128,10 @@ def test_keywords_ignore_uncited_retrieve_hits() -> None:
         ],
         chunks=[aapl, msft],
     )
-    # AAPL cite lacks "revenue"; MSFT cite has both words — AND still fails.
-    assert not score_item(q, one_sided).keyword_ok
+    assert not score_item(q, thin).keyword_ok
 
     aapl_ok = _chunk("AAPL:mda2", "iPhone revenue increased year over year.", "AAPL")
+    msft_ok = _chunk("MSFT:mda2", "Azure revenue continued to grow.", "MSFT")
     both = GroundedAnswer(
         question=q.question,
         answer="iPhone revenue increased [1]\nAzure revenue continued to grow [2]",
@@ -139,9 +139,9 @@ def test_keywords_ignore_uncited_retrieve_hits() -> None:
         refusal_reason=None,
         citations=[
             Citation(1, aapl_ok.chunk_id, "AAPL", "10-K", "mda", "2024-11-01"),
-            Citation(2, msft.chunk_id, "MSFT", "10-K", "mda", "2024-11-01"),
+            Citation(2, msft_ok.chunk_id, "MSFT", "10-K", "mda", "2024-11-01"),
         ],
-        chunks=[aapl_ok, msft],
+        chunks=[aapl_ok, msft_ok],
     )
     assert score_item(q, both).keyword_ok
 
