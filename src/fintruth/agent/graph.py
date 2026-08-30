@@ -8,6 +8,7 @@ wraps the same nodes.
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
@@ -40,6 +41,7 @@ class GraphRun:
 
     state: AgentState
     path: list[str]
+    latency_ms: float = 0.0
 
     @property
     def answer(self) -> GroundedAnswer:
@@ -113,6 +115,7 @@ class TruthSeekingGraph:
         filters: RetrievalFilters | None = None,
     ) -> GraphRun:
         """Run the three-node loop and return path + grounded answer."""
+        started = time.perf_counter()
         state = AgentState(
             question=question,
             filters=filters or RetrievalFilters(),
@@ -128,7 +131,8 @@ class TruthSeekingGraph:
         else:
             path.append("generate")
             generate_node(state, settings=self.settings)
-        return GraphRun(state=state, path=path)
+        elapsed_ms = (time.perf_counter() - started) * 1000.0
+        return GraphRun(state=state, path=path, latency_ms=elapsed_ms)
 
 
 def compile_langgraph(graph: TruthSeekingGraph) -> Any:

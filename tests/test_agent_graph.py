@@ -49,3 +49,11 @@ def test_retrieve_respects_ticker_filter() -> None:
     retrieve_node(state, graph.retriever, final_k=4)
     assert state.chunks
     assert all(c.payload.get("ticker") == "AAPL" for c in state.chunks)
+
+
+def test_graph_records_latency() -> None:
+    run = _graph().invoke("What competition risks does Apple disclose?")
+    assert run.latency_ms >= 0.0
+    assert run.state.trace is not None
+    assert run.state.trace.latency_ms >= 0.0
+    assert run.state.trace.n_returned >= 1

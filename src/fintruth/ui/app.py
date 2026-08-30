@@ -60,11 +60,12 @@ def main() -> None:
     result = run.answer
     state = run.state
 
-    col_a, col_b, col_c = st.columns(3)
+    col_a, col_b, col_c, col_d = st.columns(4)
     col_a.metric("Decision", state.decision or "?")
     col_b.metric("Refused", "yes" if result.refused else "no")
-    latency = state.trace.latency_ms if state.trace else 0.0
-    col_c.metric("Retrieve ms", f"{latency:.1f}")
+    retrieve_ms = state.trace.latency_ms if state.trace else 0.0
+    col_c.metric("Retrieve ms", f"{retrieve_ms:.1f}")
+    col_d.metric("Graph ms", f"{run.latency_ms:.1f}")
 
     st.markdown("**Graph path:** `" + " → ".join(run.path) + "`")
     if result.refused:
