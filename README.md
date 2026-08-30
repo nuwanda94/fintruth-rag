@@ -69,6 +69,7 @@ Walkthrough:
 1. Ask *What competition risks does Apple disclose in its 10-K?* — answer, `[n]` citations, expandable chunk scores/metadata.
 2. Ask *Did Tesla disclose Cybertruck unit deliveries in its latest 10-K?* — refusal banner (ticker not in corpus).
 3. Tighten ticker / section / as-of filters in the sidebar; the graph is retrieve → grade → generate|refuse.
+4. Read the 10–15 minute rehearsal script in [docs/walkthrough.md](docs/walkthrough.md).
 
 See [docs/architecture.md](docs/architecture.md), [docs/limitations.md](docs/limitations.md), and [docs/exceptional_work.md](docs/exceptional_work.md).
 
@@ -98,7 +99,7 @@ fintruth-rag/
 ├── scripts/{ingest.py, index.py, ask.py, run_eval.py, create_eval_set.py}
 ├── evals/{questions.jsonl, results/, failure_analysis.md}
 ├── notebooks/, tests/
-└── docs/{architecture.md, design_decisions.md, limitations.md, exceptional_work.md}
+└── docs/{architecture.md, design_decisions.md, limitations.md, exceptional_work.md, walkthrough.md}
 ```
 
 ## Roadmap (Interview-Max)

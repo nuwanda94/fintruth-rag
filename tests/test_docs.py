@@ -28,3 +28,10 @@ def test_limitations_and_exceptional_work_are_filled() -> None:
     assert "Truth-seeking" in exceptional or "refusal" in exceptional.lower()
     assert len(limits) > 400
     assert len(exceptional) > 400
+
+
+def test_walkthrough_exists() -> None:
+    text = (REPO_ROOT / "docs" / "walkthrough.md").read_text(encoding="utf-8")
+    assert "10" in text and "minute" in text.lower()
+    assert "refuse" in text.lower()
+    assert len(text) > 400

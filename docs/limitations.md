@@ -27,9 +27,9 @@ Interview-max scope only. See ROADMAP.md §2 OUT list. These are the constraints
 - Metrics are binary contract checks (refusal agreement, citation presence, citation ticker support, keyword coverage, ticker hit, optional gold numbers). They are **not** RAGAS faithfulness / answer-relevancy and must not be presented as such.
 - Numerical checks only fire when `expected_numbers` is set, or when the item is `numerical_absent` / `expect_refuse`. There is no unit-aware quantity parser ("$201 billion" vs "201 million").
 - Ablation rates compare keyword-in-top-k across dense / hybrid / hybrid+rerank on the **same demo corpus**. Do not treat arm deltas as production IR quality.
-- No persisted live-catalog `evals/results/` run exists until ingest credentials work in CI.
+- `evals/results/latest.json` is a checked-in **demo-corpus** snapshot (n=34). Live-catalog numbers still require ingest credentials.
 
 ## Demo UX
 
 - Streamlit talks to the in-process graph + demo corpus unless a catalog is present. Filters are ticker / section / as-of, not full EDGAR search.
-- Latency and token accounting are not wired into the UI yet.
+- Streamlit shows retrieve-pool latency and end-to-end graph latency. Token accounting is still deferred (extractive default has no LLM tokens).
