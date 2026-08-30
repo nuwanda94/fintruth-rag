@@ -96,7 +96,12 @@ def score_citation_support(question: EvalQuestion, result: GroundedAnswer) -> bo
     if not wanted or not result.citations:
         return True
     cited = {c.ticker.upper() for c in result.citations if c.ticker}
-    return bool(cited & wanted) and cited <= wanted
+    if not (cited & wanted) or not cited <= wanted:
+        return False
+    # Comparison items must cite every named issuer, not just retrieve them.
+    if len(wanted) >= 2 and question.category == "multi_ticker":
+        return wanted <= cited
+    return True
 
 
 def score_item(question: EvalQuestion, result: GroundedAnswer) -> ItemScore:
@@ -115,6 +120,8 @@ def score_item(question: EvalQuestion, result: GroundedAnswer) -> ItemScore:
         hit_tickers = {str(c.payload.get("ticker", "")).upper() for c in result.chunks}
         wanted = {t.upper() for t in question.tickers}
         ticker_ok = not wanted or bool(wanted & (cited_tickers | hit_tickers))
+        if len(wanted) >= 2 and question.category == "multi_ticker":
+            ticker_ok = wanted <= cited_tickers
 
     numerical_ok = score_numerical(question, result)
     citation_support_ok = score_citation_support(question, result)

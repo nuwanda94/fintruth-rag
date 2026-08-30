@@ -4,8 +4,10 @@ from fintruth.generation.chain import (
     asks_exact_figure,
     generate_answer,
     mentioned_tickers,
+    missing_cited_tickers,
     parse_citations,
     question_years,
+    select_quote_indices,
     should_refuse,
 )
 from fintruth.generation.prompts import REFUSAL_PREFIX, build_messages, format_evidence_block
@@ -83,6 +85,55 @@ def test_multi_ticker_refuses_when_one_name_missing() -> None:
     )
     assert result.refused
     assert "MSFT" in (result.refusal_reason or "")
+
+
+def test_select_quote_indices_covers_named_tickers() -> None:
+    chunks = [
+        _chunk("AAPL:mda:0", "iPhone revenue increased year over year."),
+        _chunk("AAPL:risk:0", "Apple faces competition in services."),
+        _chunk("MSFT:mda:0", "Azure revenue continued to grow.", ticker="MSFT", section="mda"),
+    ]
+    picked = select_quote_indices(
+        "Compare Apple iPhone revenue commentary with Microsoft Azure growth commentary.",
+        chunks,
+        limit=3,
+    )
+    tickers = {chunks[i - 1].payload["ticker"] for i in picked}
+    assert tickers == {"AAPL", "MSFT"}
+
+
+def test_extractive_covers_both_issuers_on_comparison() -> None:
+    chunks = [
+        _chunk("AAPL:mda:0", "iPhone revenue increased year over year.", section="mda"),
+        _chunk("AAPL:risk:0", "Apple faces competition in services."),
+        _chunk("MSFT:mda:0", "Azure revenue continued to grow.", ticker="MSFT", section="mda"),
+    ]
+    result = generate_answer(
+        "Compare Apple iPhone revenue commentary with Microsoft Azure growth commentary.",
+        chunks,
+        use_llm=False,
+    )
+    assert not result.refused
+    cited = {c.ticker for c in result.citations}
+    assert cited == {"AAPL", "MSFT"}
+
+
+def test_llm_refuses_when_citations_omit_named_ticker() -> None:
+    chunks = [
+        _chunk("AAPL:mda:0", "iPhone revenue increased year over year.", section="mda"),
+        _chunk("MSFT:mda:0", "Azure revenue continued to grow.", ticker="MSFT", section="mda"),
+    ]
+    result = generate_answer(
+        "Compare AAPL iPhone revenue with MSFT Azure growth.",
+        chunks,
+        model_text="Apple iPhone revenue increased [1].",
+    )
+    assert result.refused
+    assert "MSFT" in (result.refusal_reason or "")
+    assert missing_cited_tickers(
+        "Compare AAPL iPhone revenue with MSFT Azure growth.",
+        result.citations,
+    ) == []
 
 
 def test_mentioned_tickers_dedupes() -> None:
