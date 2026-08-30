@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from fintruth.config import REPO_ROOT, Settings, get_settings
+from fintruth.eval.ablation import ablation_as_dict, run_retrieval_ablation
 from fintruth.eval.dataset import EvalQuestion, load_questions
 from fintruth.eval.metrics import ItemScore, score_item, summarize
 from fintruth.generation.chain import generate_answer
@@ -32,7 +33,10 @@ DEMO_CORPUS: list[dict[str, Any]] = [
     },
     {
         "chunk_id": "AAPL:demo:mda:0",
-        "text": "iPhone revenue increased year over year driven by services mix.",
+        "text": (
+            "iPhone revenue increased year over year driven by services mix. "
+            "iPhone net sales were $201 billion for fiscal 2024."
+        ),
         "ticker": "AAPL",
         "form": "10-K",
         "filing_date": "2024-11-01",
@@ -138,6 +142,7 @@ class EvalRunResult:
     summary: dict[str, float]
     items: list[dict[str, Any]] = field(default_factory=list)
     started_at: str = ""
+    ablation: dict[str, Any] | None = None
 
 
 def _payloads_from_catalog(settings: Settings) -> list[dict[str, Any]]:
@@ -200,6 +205,7 @@ def run_eval(
     settings: Settings | None = None,
     results_dir: Path | None = None,
     write: bool = True,
+    with_ablation: bool = True,
 ) -> EvalRunResult:
     """Execute the seeded set against catalog chunks or the demo fixture."""
     settings = settings or get_settings()
@@ -218,6 +224,10 @@ def run_eval(
         scores.append(score)
         rows.append(row)
 
+    ablation_payload = None
+    if with_ablation:
+        ablation_payload = ablation_as_dict(run_retrieval_ablation(questions, retriever))
+
     started = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     run = EvalRunResult(
         corpus=corpus,
@@ -225,13 +235,15 @@ def run_eval(
         summary=summarize(scores),
         items=rows,
         started_at=started,
+        ablation=ablation_payload,
     )
     if write:
         out_dir = results_dir or DEFAULT_RESULTS_DIR
         out_dir.mkdir(parents=True, exist_ok=True)
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         path = out_dir / f"run_{corpus}_{stamp}.json"
-        path.write_text(json.dumps(asdict(run), indent=2), encoding="utf-8")
+        payload = asdict(run)
+        path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
         latest = out_dir / "latest.json"
-        latest.write_text(json.dumps(asdict(run), indent=2), encoding="utf-8")
+        latest.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     return run

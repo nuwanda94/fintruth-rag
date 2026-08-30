@@ -1,4 +1,4 @@
-"""Guardrails so Week 2 Day 5 docs stay non-empty."""
+"""Guardrails so interview docs stay non-empty."""
 
 from pathlib import Path
 
@@ -18,3 +18,13 @@ def test_failure_analysis_covers_demo_modes() -> None:
     assert "out of corpus" in text.lower() or "Out of corpus" in text
     assert "DEMO_CORPUS" in text
     assert Path(REPO_ROOT / "docs" / "architecture.md").stat().st_size > 200
+
+
+def test_limitations_and_exceptional_work_are_filled() -> None:
+    limits = (REPO_ROOT / "docs" / "limitations.md").read_text(encoding="utf-8")
+    exceptional = (REPO_ROOT / "docs" / "exceptional_work.md").read_text(encoding="utf-8")
+    assert "hash embedder" in limits.lower() or "hash-embedder" in limits.lower()
+    assert "OUT" in limits
+    assert "Truth-seeking" in exceptional or "refusal" in exceptional.lower()
+    assert len(limits) > 400
+    assert len(exceptional) > 400

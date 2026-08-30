@@ -34,7 +34,7 @@ Ship a focused, deeply understood, measurable system demonstrating:
 - Reranker: Cohere or BGE-reranker (lexical stand-in offline)
 - LLM: xAI Grok API (primary); extractive fallback without keys
 - Ingestion: edgartools + BeautifulSoup/lxml
-- Eval: custom refusal/citation/keyword checks (RAGAS later)
+- Eval: refusal / citation-support / keyword / numerical checks + retrieval ablation (RAGAS later)
 - UI: Streamlit | Observability: LangSmith / Langfuse
 
 ## Quick start (offline loop)
@@ -51,16 +51,26 @@ uv run pytest -q
 uv run python scripts/ask.py --demo "What competition risks does Apple disclose?"
 # or: make ask
 
-# seeded eval set against the demo corpus
+# seeded eval set against the demo corpus (writes evals/results/latest.json)
 uv run python scripts/run_eval.py --demo
 # or: make eval
 uv run python scripts/create_eval_set.py   # list items
+```
 
-# evidence UI (retrieve → grade → generate|refuse)
+## Streamlit evidence demo
+
+```bash
 uv sync --extra ui
 uv run --extra ui streamlit run src/fintruth/ui/app.py
 # or: make ui
 ```
+
+Walkthrough:
+1. Ask *What competition risks does Apple disclose in its 10-K?* — answer, `[n]` citations, expandable chunk scores/metadata.
+2. Ask *Did Tesla disclose Cybertruck unit deliveries in its latest 10-K?* — refusal banner (ticker not in corpus).
+3. Tighten ticker / section / as-of filters in the sidebar; the graph is retrieve → grade → generate|refuse.
+
+See [docs/architecture.md](docs/architecture.md), [docs/limitations.md](docs/limitations.md), and [docs/exceptional_work.md](docs/exceptional_work.md).
 
 ## Live corpus (needs `SEC_USER_AGENT` in `.env`)
 
@@ -77,7 +87,7 @@ uv run python scripts/ask.py "What competition risks does Apple disclose?" --tic
 uv run python scripts/run_eval.py
 ```
 
-Results land in `evals/results/latest.json`. Metrics are refusal accuracy, citation presence, keyword coverage, and ticker hit-rate — not yet RAGAS / numerical extraction.
+Results land in `evals/results/latest.json`. Metrics: refusal accuracy, citation presence, citation ticker support, keyword coverage, ticker hit-rate, optional numerical faithfulness. Retrieval ablation (dense vs hybrid vs hybrid+rerank) is attached to the same JSON. These are contract metrics on the demo fixture unless a live catalog is loaded — not RAGAS.
 
 ## File Structure
 ```

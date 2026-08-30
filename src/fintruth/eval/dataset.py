@@ -13,7 +13,7 @@ DEFAULT_EVAL_PATH = REPO_ROOT / "evals" / "questions.jsonl"
 
 @dataclass(slots=True)
 class EvalQuestion:
-    """One grounded-research item used by the Week 1 runner."""
+    """One grounded-research item used by the eval runner."""
 
     id: str
     question: str
@@ -25,6 +25,7 @@ class EvalQuestion:
     keywords: list[str] = field(default_factory=list)
     difficulty: str = "medium"
     category: str = "general"
+    expected_numbers: list[str] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, raw: dict) -> "EvalQuestion":
@@ -39,6 +40,7 @@ class EvalQuestion:
             keywords=[str(k).lower() for k in (raw.get("keywords") or [])],
             difficulty=str(raw.get("difficulty", "medium")),
             category=str(raw.get("category", "general")),
+            expected_numbers=[str(n) for n in (raw.get("expected_numbers") or [])],
         )
 
 
