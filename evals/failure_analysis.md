@@ -18,6 +18,8 @@ Can prove:
   the hit list (`should_refuse` missing-ticker rule).
 - Exact-figure questions that name a year missing from chunk text refuse
   (`q016` Q3 2019, `q030` FY2012) instead of quoting nearby iPhone revenue.
+- Exact-figure questions whose year is only far from any quantity refuse
+  (iteration 19 / year-quantity window).
 - Comparison answers cite every named issuer (`select_quote_indices` +
   `missing_cited_tickers`).
 - Keyword checks use the answer + **cited** spans only (iteration 14).
@@ -47,7 +49,7 @@ of refusal/citation checks. That floor is intentional.
 Keep these even after live ingest: TSLA/BRK stay outside the 10-name
 universe unless the ticker list changes.
 
-### F2. Numerical facts that are not in any chunk (expected refuse — working after period gate)
+### F2. Numerical facts that are not in any chunk (expected refuse — working after period + proximity gates)
 
 | IDs | Symptom | Root cause | Status |
 |-----|---------|------------|--------|
@@ -59,9 +61,14 @@ chunk answer q030. Iteration 12 `should_refuse` requires exact-figure
 questions to see the asked year in chunk **text** (filing_date is not
 enough). Qualitative MD&A (`q002`) is unchanged.
 
-Risk after live ingest: a nearby sentence that happens to contain both
-"2012" and a different figure could still pass. Mitigation remains the
-custom numerical check (gold figure or refuse) plus a future unit parser.
+Iteration 19: `evidence_has_year_near_quantity` also requires that year
+to sit within `YEAR_QUANTITY_WINDOW` of a dollar / grouped / scaled
+figure. A 2012 store-opening sentence followed later by FY2024 revenue
+is not period evidence. Bare `2012` is not treated as a quantity.
+
+Residual after live ingest: a year that sits next to the *wrong* figure
+can still pass the generation gate; `score_numerical` + the unit-volume
+gate must catch that. This is not sentence parsing or XBRL.
 
 ### F3. Notes / goodwill sparse section (expected refuse on demo)
 
@@ -133,7 +140,8 @@ whose `chunk_id` is missing from the current pool fails
    checkout runs the harness (numbers will still be demo until ingest).
 2. After first live catalog: re-run the 34 and tag each residual miss
    as retrieve / filter / refuse-policy / generation.
-3. Gold numeric spans for live q016/q030-class items still need a unit parser.
+3. ~~Gold numeric spans for live q016/q030-class items still need a unit parser~~
+   **done offline (iterations 17 + 19)**; live catalog still needed to measure IR.
 4. ~~Require all named tickers in the citation set~~ **done (iteration 13)**.
 5. ~~Keyword metric must not use the uncited retrieve pool~~ **done (iteration 14)**.
 6. ~~Per-issuer keyword alignment on comparisons~~ **done (iteration 15)**.
