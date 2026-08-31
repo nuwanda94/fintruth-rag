@@ -4,6 +4,15 @@ Packaging notes for interview-max FinTruth RAG. Git tag `v0.1.0` is optional
 (create-tag is not in the connected GitHub tool set); this file is the source
 of truth for what that tag should mean.
 
+## 0.1.6 — 2026-08-31
+
+Latency/token tracking on the grounded path (Week 2 perf residual).
+
+- `TokenUsage` + char/4 estimate; Grok `usage` parsed when present
+- `GraphRun` exposes retrieve_ms, generate_ms, and usage
+- Streamlit metrics for prompt/completion tokens and generate ms
+- Extractive estimates are **not** billed tokens
+
 ## 0.1.5 — 2026-08-31
 
 Unit-aware numerical scoring and unit-volume refusal gate (F2 residual).

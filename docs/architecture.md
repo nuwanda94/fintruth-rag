@@ -14,6 +14,9 @@ SEC / demo fixture
 
 Week 3 loop is `TruthSeekingGraph` in `src/fintruth/agent/graph.py`. LangGraph is an optional compile of the same nodes; tests run the typed state machine with no extra deps.
 
+`GraphRun` records retrieve ms, generate ms, end-to-end ms, and `TokenUsage`.
+Extractive answers use a char/4 estimate; Grok responses keep provider `usage` when present.
+
 ## Grade gates (`should_refuse` + post-cite checks)
 
 Generation is blocked when any of these fire:

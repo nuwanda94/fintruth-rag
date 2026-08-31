@@ -75,9 +75,15 @@ def main() -> None:
     col_a, col_b, col_c, col_d = st.columns(4)
     col_a.metric("Decision", state.decision or "?")
     col_b.metric("Refused", "yes" if result.refused else "no")
-    retrieve_ms = state.trace.latency_ms if state.trace else 0.0
+    retrieve_ms = run.retrieve_ms or (state.trace.latency_ms if state.trace else 0.0)
     col_c.metric("Retrieve ms", f"{retrieve_ms:.1f}")
     col_d.metric("Graph ms", f"{run.latency_ms:.1f}")
+
+    tok_a, tok_b, tok_c, tok_d = st.columns(4)
+    tok_a.metric("Generate ms", f"{run.generate_ms:.1f}")
+    tok_b.metric("Prompt toks", f"{run.usage.prompt_tokens}")
+    tok_c.metric("Completion toks", f"{run.usage.completion_tokens}")
+    tok_d.metric("Tokens", f"{run.usage.total_tokens} ({run.usage.source})")
 
     st.markdown("**Graph path:** `" + " → ".join(run.path) + "`")
     if result.refused:

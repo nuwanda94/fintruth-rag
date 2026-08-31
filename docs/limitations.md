@@ -21,6 +21,7 @@ Interview-max scope only. See ROADMAP.md §2 OUT list. These are the constraints
 - Grok is optional (`XAI_API_KEY`). Eval **always** forces `use_llm=False` so scores stay deterministic.
 - `TruthSeekingGraph` is retrieve → grade → generate|refuse. No multi-hop tools, no web/X, no conflict graph across the full corpus.
 - Citation identity is 1-indexed retrieval order, not a stable document address in EDGAR.
+- Token counts on the extractive path are a char/4 **estimate** (`TokenUsage.source="estimate"`). API `usage` is used only when Grok returns it. Estimates are not billed tokens.
 
 ## Evaluation
 
@@ -32,4 +33,4 @@ Interview-max scope only. See ROADMAP.md §2 OUT list. These are the constraints
 ## Demo UX
 
 - Streamlit talks to the in-process graph + demo corpus unless a catalog is present. Filters are ticker / section / as-of, not full EDGAR search.
-- Streamlit shows retrieve-pool latency and end-to-end graph latency. Token accounting is still deferred (extractive default has no LLM tokens).
+- Streamlit shows retrieve ms, generate ms, end-to-end graph ms, and prompt/completion token estimates.

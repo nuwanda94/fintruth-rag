@@ -10,7 +10,7 @@ FinTruth is a *strictly grounded* SEC research assistant. Scope is 8–12 large-
 
 Ingest → section chunks → hybrid dense+sparse RRF → lexical rerank → grade → generate or refuse.
 
-Point at `docs/architecture.md`. Offline default is hash embeddings + `InMemoryVectorStore` so the loop is deterministic without keys. Call out grade gate 5 (period in chunk *text*) and gate 6 (comparison answers must *cite* every named issuer).
+Point at `docs/architecture.md`. Offline default is hash embeddings + `InMemoryVectorStore` so the loop is deterministic without keys. Call out grade gate 5 (period in chunk *text*), gate 6 (unit-volume asks need unit quantities, not dollar revenue), and gate 7 (comparison answers must *cite* every named issuer).
 
 ## 2. Live easy query (2 min)
 
@@ -21,13 +21,13 @@ make ask
 
 Ask: *What competition risks does Apple disclose?*
 
-Show: answer text, `[n]` citations, chunk scores, ticker/section/date, retrieve ms vs graph ms.
+Show: answer text, `[n]` citations, chunk scores, ticker/section/date, retrieve ms vs generate ms vs graph ms, token estimate (`estimate` vs `api`).
 
 ## 3. Live hard / refuse query (2 min)
 
 Ask: *Did Tesla disclose Cybertruck unit deliveries in its latest 10-K?*
 
-Show the refusal banner (missing issuer). Follow with *What was Apple's exact FY2012 greater-China iPhone unit volume?* — that refuses because 2012 is not in the FY2024 MD&A snippet, even though "iPhone" overlaps.
+Show the refusal banner (missing issuer). Follow with *What was Apple's exact FY2012 greater-China iPhone unit volume?* — that refuses because 2012 is not in the FY2024 MD&A snippet, even though "iPhone" overlaps. A dollar revenue sentence would also fail the unit-volume gate.
 
 Optional contrast: *Compare Apple iPhone revenue commentary with Microsoft Azure growth commentary.* — citations must include both AAPL and MSFT. A one-sided quote is a refuse.
 
@@ -49,11 +49,11 @@ Open `evals/results/latest.json`:
 
 ## 5. Decisions and limits (2 min)
 
-Walk D1–D10 in `docs/design_decisions.md` and the first page of `docs/limitations.md`. Emphasize: hash embedder is wiring; demo `$201 billion` is a harness figure; Grok is optional.
+Walk D1–D10 in `docs/design_decisions.md` and the first page of `docs/limitations.md`. Emphasize: hash embedder is wiring; demo `$201 billion` is a harness figure; Grok is optional; extractive token counts are estimates.
 
 ## 6. What more time buys (1 min)
 
-Live EDGAR catalog + voyage/Cohere + RAGAS on real filings; parent-document chunks; numerical unit parser. Do not promise multi-hop agents in this package.
+Live EDGAR catalog + voyage/Cohere + RAGAS on real filings; parent-document chunks; XBRL facts. Do not promise multi-hop agents in this package.
 
 Live ingest is gated: `make ingest-preflight` then
 `uv run python scripts/ingest.py --tickers AAPL --years 1 --max-filings 1`
