@@ -6,6 +6,7 @@ import re
 from dataclasses import dataclass, field
 
 from fintruth.generation.prompts import REFUSAL_PREFIX
+from fintruth.generation.usage import TokenUsage
 from fintruth.retrieval.hybrid import RetrievedChunk
 
 _CITE = re.compile(r"\[(\d+)\]")
@@ -41,6 +42,7 @@ class GroundedAnswer:
     citations: list[Citation] = field(default_factory=list)
     chunks: list[RetrievedChunk] = field(default_factory=list)
     mode: str = "extractive"
+    usage: TokenUsage = field(default_factory=TokenUsage)
 
     def sources_block(self) -> str:
         """Render a Sources footer from parsed citations."""
