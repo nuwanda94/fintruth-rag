@@ -54,6 +54,10 @@ def test_retrieve_respects_ticker_filter() -> None:
 def test_graph_records_latency() -> None:
     run = _graph().invoke("What competition risks does Apple disclose?")
     assert run.latency_ms >= 0.0
+    assert run.retrieve_ms >= 0.0
+    assert run.generate_ms >= 0.0
     assert run.state.trace is not None
     assert run.state.trace.latency_ms >= 0.0
     assert run.state.trace.n_returned >= 1
+    assert run.usage.total_tokens > 0
+    assert run.usage.source == "estimate"
