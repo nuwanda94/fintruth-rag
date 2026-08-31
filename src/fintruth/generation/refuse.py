@@ -5,6 +5,10 @@ from __future__ import annotations
 import re
 
 from fintruth.generation.citations import Citation
+from fintruth.generation.segments import (
+    evidence_has_year_near_segment,
+    question_segments,
+)
 from fintruth.generation.units import (
     UNIT_QUANTITY_RE,
     asks_unit_volume,
@@ -214,4 +218,15 @@ def should_refuse(
                 )
             if not evidence_has_unit_quantity(chunks):
                 return "asked unit volume not present in retrieved evidence"
+        segments = question_segments(question)
+        if years and segments and not evidence_has_year_near_segment(
+            chunks, years, segments, window=YEAR_QUANTITY_WINDOW
+        ):
+            return (
+                "asked period "
+                + ", ".join(years)
+                + " not near segment "
+                + ", ".join(segments)
+                + " in retrieved evidence"
+            )
     return None

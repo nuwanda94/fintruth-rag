@@ -2,6 +2,10 @@
 
 from fintruth.generation.chain import generate_answer, should_refuse
 from fintruth.generation.refuse import evidence_has_year_near_quantity
+from fintruth.generation.segments import (
+    evidence_has_year_near_segment,
+    question_segments,
+)
 from fintruth.generation.units import UNIT_QUANTITY_RE
 from fintruth.retrieval.hybrid import RetrievedChunk
 
@@ -76,4 +80,29 @@ def test_year_next_to_dollars_does_not_satisfy_unit_ask() -> None:
     assert reason is not None
     assert "not near a unit quantity" in reason
     result = generate_answer(QUESTION, [mixed], use_llm=False)
+    assert result.refused
+
+
+def test_question_segments_detects_greater_china() -> None:
+    assert question_segments(QUESTION) == ["greater china"]
+    assert question_segments("What was Americas unit volume?") == ["americas"]
+
+
+def test_year_next_to_wrong_geography_is_refused() -> None:
+    """F2 residual: right kind of figure, wrong reporting segment."""
+    americas = _chunk(
+        "AAPL:mda:americas",
+        "Americas iPhone unit volume was 80 million units in fiscal 2012. "
+        + "Greater China commentary discusses competition only.",
+    )
+    assert evidence_has_year_near_quantity(
+        [americas], ["2012"], quantity_re=UNIT_QUANTITY_RE
+    )
+    assert not evidence_has_year_near_segment(
+        [americas], ["2012"], ["greater china"], window=96
+    )
+    reason = should_refuse([americas], QUESTION)
+    assert reason is not None
+    assert "not near segment" in reason
+    result = generate_answer(QUESTION, [americas], use_llm=False)
     assert result.refused
