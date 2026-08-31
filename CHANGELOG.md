@@ -4,6 +4,15 @@ Packaging notes for interview-max FinTruth RAG. Git tag `v0.1.0` is optional
 (create-tag is not in the connected GitHub tool set); this file is the source
 of truth for what that tag should mean.
 
+## 0.1.8 — 2026-08-31
+
+Exact unit-volume asks need the asked year next to a *unit* quantity.
+
+- `evidence_has_year_near_quantity` accepts `quantity_re`
+- `should_refuse` uses `UNIT_QUANTITY_RE` so FY2012 *revenue* plus later
+  unit volume cannot answer an FY2012 unit-volume question
+- Still lexical windowing, not sentence parse or XBRL
+
 ## 0.1.7 — 2026-08-31
 
 Exact-figure period evidence must sit next to a quantity (F2 residual).

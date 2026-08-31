@@ -27,8 +27,9 @@ Generation is blocked when any of these fire:
 4. No term overlap between question and chunk text
 5. Exact-figure question ("exact" / "unit volume" / "units" / "deliveries") names a year that does **not** appear in chunk text (filing_date alone is not enough)
 6. Exact-figure question whose asked year is not within `YEAR_QUANTITY_WINDOW` of a real quantity (dollar, grouped thousands, or scaled count). A distant "2012" store-opening sentence next to FY2024 revenue is not period evidence.
-7. Exact unit-volume question whose chunks have no number paired with units/deliveries/shipments (dollar revenue is not a substitute)
-8. Multi-ticker question whose citations omit a named issuer (extractive selection covers issuers first; LLM answers that cite only one side are refused)
+7. Exact unit-volume question whose asked year is not within that window of a *unit* quantity (`UNIT_QUANTITY_RE`). FY2012 *revenue* plus FY2024 units is not unit-volume evidence for 2012.
+8. Exact unit-volume question whose chunks have no number paired with units/deliveries/shipments (dollar revenue is not a substitute)
+9. Multi-ticker question whose citations omit a named issuer (extractive selection covers issuers first; LLM answers that cite only one side are refused)
 
 Eval scoring is separate from generation gates. Keyword checks read the
 answer plus **cited** chunk text only; multi-ticker items with two or more
@@ -43,8 +44,9 @@ rerank the eval harness must not treat that index as identity.
 
 Gate 5 is why `q016` / `q030` refuse instead of quoting FY2024 iPhone revenue.
 Gate 6 is why a year that only appears far from any figure still refuses.
-Gate 7 is why a FY2012 *revenue* sentence cannot answer a unit-volume ask.
-Gate 8 is why a comparison cannot quote only AAPL when the question also names MSFT.
+Gate 7 is why a year sitting next to the *wrong* figure (dollars vs units) still refuses.
+Gate 8 is why a FY2012 *revenue* sentence cannot answer a unit-volume ask.
+Gate 9 is why a comparison cannot quote only AAPL when the question also names MSFT.
 Eval gold numbers may include a scale (`201 billion` on q002).
 
 ## Default data path
