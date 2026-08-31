@@ -10,7 +10,8 @@ _UNIT_ASK = re.compile(
     r"\b(unit volume|units?|deliveries|shipments)\b",
     re.I,
 )
-_UNIT_QUANTITY = re.compile(
+# Number paired with units/deliveries/shipments. Dollar figures do not match.
+UNIT_QUANTITY_RE = re.compile(
     r"\d[\d,]*(?:\.\d+)?\s*(?:thousand|million|billion)?\s*"
     r"(?:units?|deliveries|shipments)\b"
     r"|\b(?:units?|deliveries|shipments)\b.{0,40}\d",
@@ -26,4 +27,4 @@ def asks_unit_volume(question: str) -> bool:
 def evidence_has_unit_quantity(chunks: list[RetrievedChunk]) -> bool:
     """True when some chunk pairs a number with units/deliveries/shipments."""
     blob = " ".join(c.text for c in chunks)
-    return bool(_UNIT_QUANTITY.search(blob))
+    return bool(UNIT_QUANTITY_RE.search(blob))

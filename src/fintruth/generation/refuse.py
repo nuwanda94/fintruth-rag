@@ -5,7 +5,11 @@ from __future__ import annotations
 import re
 
 from fintruth.generation.citations import Citation
-from fintruth.generation.units import asks_unit_volume, evidence_has_unit_quantity
+from fintruth.generation.units import (
+    UNIT_QUANTITY_RE,
+    asks_unit_volume,
+    evidence_has_unit_quantity,
+)
 from fintruth.retrieval.hybrid import RetrievedChunk
 
 _TOKEN = re.compile(r"[a-z0-9$%]+", re.I)
@@ -89,15 +93,20 @@ def evidence_has_year_near_quantity(
     years: list[str],
     *,
     window: int = YEAR_QUANTITY_WINDOW,
+    quantity_re: re.Pattern[str] | None = None,
 ) -> bool:
-    """True when an asked year sits near a real quantity in the same chunk.
+    """True when an asked year sits near a matching quantity in the same chunk.
 
     Filing_date is ignored. A year that only appears in a distant sentence
     (for example a 2012 store-opening note next to FY2024 revenue) does not
     count as period evidence for an exact-figure question.
+
+    Pass ``quantity_re=UNIT_QUANTITY_RE`` so a year next to dollars does not
+    satisfy a unit-volume ask when units only appear under another year.
     """
     if not years:
         return True
+    pattern = quantity_re or _FACT_QUANTITY
     for chunk in chunks:
         text = chunk.text or ""
         for year in years:
@@ -108,7 +117,7 @@ def evidence_has_year_near_quantity(
                     break
                 lo = max(0, idx - window)
                 hi = min(len(text), idx + len(year) + window)
-                if _FACT_QUANTITY.search(text[lo:hi]):
+                if pattern.search(text[lo:hi]):
                     return True
                 start = idx + len(year)
     return False
@@ -194,6 +203,15 @@ def should_refuse(
                 + ", ".join(years)
                 + " not near a quantity in retrieved evidence"
             )
-        if asks_unit_volume(question) and not evidence_has_unit_quantity(chunks):
-            return "asked unit volume not present in retrieved evidence"
+        if asks_unit_volume(question):
+            if years and not evidence_has_year_near_quantity(
+                chunks, years, quantity_re=UNIT_QUANTITY_RE
+            ):
+                return (
+                    "asked period "
+                    + ", ".join(years)
+                    + " not near a unit quantity in retrieved evidence"
+                )
+            if not evidence_has_unit_quantity(chunks):
+                return "asked unit volume not present in retrieved evidence"
     return None
