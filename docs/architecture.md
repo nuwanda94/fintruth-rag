@@ -29,7 +29,8 @@ Generation is blocked when any of these fire:
 6. Exact-figure question whose asked year is not within `YEAR_QUANTITY_WINDOW` of a real quantity (dollar, grouped thousands, or scaled count). A distant "2012" store-opening sentence next to FY2024 revenue is not period evidence.
 7. Exact unit-volume question whose asked year is not within that window of a *unit* quantity (`UNIT_QUANTITY_RE`). FY2012 *revenue* plus FY2024 units is not unit-volume evidence for 2012.
 8. Exact unit-volume question whose chunks have no number paired with units/deliveries/shipments (dollar revenue is not a substitute)
-9. Multi-ticker question whose citations omit a named issuer (extractive selection covers issuers first; LLM answers that cite only one side are refused)
+9. Exact-figure question that names a reporting segment (Greater China, Americas, Europe, Japan, Rest of Asia Pacific) whose asked year is not within that window of the segment phrase. Americas units in FY2012 are not Greater China evidence.
+10. Multi-ticker question whose citations omit a named issuer (extractive selection covers issuers first; LLM answers that cite only one side are refused)
 
 Eval scoring is separate from generation gates. Keyword checks read the
 answer plus **cited** chunk text only; multi-ticker items with two or more
@@ -46,7 +47,8 @@ Gate 5 is why `q016` / `q030` refuse instead of quoting FY2024 iPhone revenue.
 Gate 6 is why a year that only appears far from any figure still refuses.
 Gate 7 is why a year sitting next to the *wrong* figure (dollars vs units) still refuses.
 Gate 8 is why a FY2012 *revenue* sentence cannot answer a unit-volume ask.
-Gate 9 is why a comparison cannot quote only AAPL when the question also names MSFT.
+Gate 9 is why a year next to the right *kind* of figure in the wrong geography still refuses.
+Gate 10 is why a comparison cannot quote only AAPL when the question also names MSFT.
 Eval gold numbers may include a scale (`201 billion` on q002).
 
 ## Default data path

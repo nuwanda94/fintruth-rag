@@ -22,7 +22,7 @@ Interview-max scope only. See ROADMAP.md §2 OUT list. These are the constraints
 - `TruthSeekingGraph` is retrieve → grade → generate|refuse. No multi-hop tools, no web/X, no conflict graph across the full corpus.
 - Citation identity is 1-indexed retrieval order, not a stable document address in EDGAR.
 - Token counts on the extractive path are a char/4 **estimate** (`TokenUsage.source="estimate"`). API `usage` is used only when Grok returns it. Estimates are not billed tokens.
-- Year-quantity and year-unit windows are character distance in one chunk. A year next to the right *kind* of figure still may sit next to the wrong line item (Greater China vs Americas). That needs XBRL or sentence roles, which are out of scope.
+- Year-quantity, year-unit, and year-segment windows are character distance in one chunk. A year next to the right geography still may sit next to the wrong *product* line (iPhone vs Mac). That needs XBRL or sentence roles, which are out of scope.
 
 ## Evaluation
 

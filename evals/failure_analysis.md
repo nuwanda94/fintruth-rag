@@ -22,6 +22,8 @@ Can prove:
   (iteration 19 / year-quantity window).
 - Exact unit-volume questions whose year is only next to dollars refuse
   even if units appear under another year (iteration 20 / year-unit window).
+- Exact-figure questions whose year sits next to the right *kind* of figure
+  in the wrong reporting segment refuse (iteration 21 / year-segment window).
 - Comparison answers cite every named issuer (`select_quote_indices` +
   `missing_cited_tickers`).
 - Keyword checks use the answer + **cited** spans only (iteration 14).
@@ -51,7 +53,7 @@ of refusal/citation checks. That floor is intentional.
 Keep these even after live ingest: TSLA/BRK stay outside the 10-name
 universe unless the ticker list changes.
 
-### F2. Numerical facts that are not in any chunk (expected refuse — working after period + proximity + unit-kind gates)
+### F2. Numerical facts that are not in any chunk (expected refuse — working after period + proximity + unit-kind + segment gates)
 
 | IDs | Symptom | Root cause | Status |
 |-----|---------|------------|--------|
@@ -72,9 +74,13 @@ Iteration 20: unit-volume asks further require that year to sit next to
 `UNIT_QUANTITY_RE`. FY2012 `$22.8 billion` plus FY2024 `232 million units`
 in the same chunk is still refused for an FY2012 unit-volume question.
 
-Residual after live ingest: a year next to the right *kind* of figure
-can still be the wrong line item (Americas units vs Greater China).
-`score_numerical` may catch a gold mismatch; this is not XBRL.
+Iteration 21: if the question names a reporting segment, that year must
+also sit near the segment phrase. FY2012 *Americas* units cannot answer
+a Greater China unit-volume question.
+
+Residual after live ingest: a year next to the right geography can still
+be the wrong product line (iPhone vs Mac). `score_numerical` may catch a
+gold mismatch; this is not XBRL.
 
 ### F3. Notes / goodwill sparse section (expected refuse on demo)
 
@@ -147,7 +153,7 @@ whose `chunk_id` is missing from the current pool fails
 2. After first live catalog: re-run the 34 and tag each residual miss
    as retrieve / filter / refuse-policy / generation.
 3. ~~Gold numeric spans for live q016/q030-class items still need a unit parser~~
-   **done offline (iterations 17 + 19 + 20)**; live catalog still needed to measure IR.
+   **done offline (iterations 17 + 19 + 20 + 21)**; live catalog still needed to measure IR.
 4. ~~Require all named tickers in the citation set~~ **done (iteration 13)**.
 5. ~~Keyword metric must not use the uncited retrieve pool~~ **done (iteration 14)**.
 6. ~~Per-issuer keyword alignment on comparisons~~ **done (iteration 15)**.

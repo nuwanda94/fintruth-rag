@@ -4,6 +4,14 @@ Packaging notes for interview-max FinTruth RAG. Git tag `v0.1.0` is optional
 (create-tag is not in the connected GitHub tool set); this file is the source
 of truth for what that tag should mean.
 
+## 0.1.9 — 2026-08-31
+
+Exact-figure asks that name a reporting segment need the year next to it.
+
+- `question_segments` / `evidence_has_year_near_segment`
+- `should_refuse` blocks FY2012 *Americas* units for a Greater China ask
+- Still lexical windowing, not product-line roles or XBRL
+
 ## 0.1.8 — 2026-08-31
 
 Exact unit-volume asks need the asked year next to a *unit* quantity.
