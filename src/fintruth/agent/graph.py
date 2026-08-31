@@ -15,6 +15,7 @@ from typing import Any, Literal
 from fintruth.config import Settings, get_settings
 from fintruth.generation.chain import GroundedAnswer, generate_answer, should_refuse
 from fintruth.generation.prompts import REFUSAL_PREFIX
+from fintruth.generation.usage import TokenUsage, measure_usage
 from fintruth.retrieval.filters import RetrievalFilters
 from fintruth.retrieval.hybrid import HybridRetriever, RetrievedChunk, RetrieveTrace
 
@@ -33,6 +34,8 @@ class AgentState:
     answer: GroundedAnswer | None = None
     trace: RetrieveTrace | None = None
     extractive: bool = True
+    retrieve_ms: float = 0.0
+    generate_ms: float = 0.0
 
 
 @dataclass(slots=True)
@@ -42,6 +45,9 @@ class GraphRun:
     state: AgentState
     path: list[str]
     latency_ms: float = 0.0
+    retrieve_ms: float = 0.0
+    generate_ms: float = 0.0
+    usage: TokenUsage = field(default_factory=TokenUsage)
 
     @property
     def answer(self) -> GroundedAnswer:
@@ -52,9 +58,11 @@ class GraphRun:
 
 def retrieve_node(state: AgentState, retriever: HybridRetriever, *, final_k: int | None = None) -> AgentState:
     """Pull hybrid evidence for the question."""
+    started = time.perf_counter()
     chunks = retriever.retrieve(state.question, filters=state.filters, final_k=final_k)
     state.chunks = chunks
     state.trace = retriever.last_trace
+    state.retrieve_ms = (time.perf_counter() - started) * 1000.0
     return state
 
 
@@ -69,20 +77,23 @@ def grade_node(state: AgentState) -> AgentState:
 def refuse_node(state: AgentState) -> AgentState:
     """Emit a structured refusal without calling an LLM."""
     reason = state.grade_reason or "insufficient evidence"
+    answer_text = f"{REFUSAL_PREFIX} {reason}"
     state.answer = GroundedAnswer(
         question=state.question,
-        answer=f"{REFUSAL_PREFIX} {reason}",
+        answer=answer_text,
         refused=True,
         refusal_reason=reason,
         citations=[],
         chunks=state.chunks,
         mode="graph-refuse",
+        usage=measure_usage(state.question, state.chunks, answer_text),
     )
     return state
 
 
 def generate_node(state: AgentState, *, settings: Settings | None = None) -> AgentState:
     """Produce a grounded answer; still gated inside generate_answer."""
+    started = time.perf_counter()
     use_llm = False if state.extractive else None
     state.answer = generate_answer(
         state.question,
@@ -90,6 +101,7 @@ def generate_node(state: AgentState, *, settings: Settings | None = None) -> Age
         use_llm=use_llm,
         settings=settings,
     )
+    state.generate_ms = (time.perf_counter() - started) * 1000.0
     return state
 
 
@@ -132,7 +144,15 @@ class TruthSeekingGraph:
             path.append("generate")
             generate_node(state, settings=self.settings)
         elapsed_ms = (time.perf_counter() - started) * 1000.0
-        return GraphRun(state=state, path=path, latency_ms=elapsed_ms)
+        usage = state.answer.usage if state.answer is not None else TokenUsage()
+        return GraphRun(
+            state=state,
+            path=path,
+            latency_ms=elapsed_ms,
+            retrieve_ms=state.retrieve_ms,
+            generate_ms=state.generate_ms,
+            usage=usage,
+        )
 
 
 def compile_langgraph(graph: TruthSeekingGraph) -> Any:
