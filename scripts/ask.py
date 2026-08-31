@@ -129,11 +129,13 @@ def main() -> int:
     )
     result = generate_answer(args.question, chunks, use_llm=False if args.extractive else None)
     trace = retriever.last_trace
+    latency = f"{trace.latency_ms:.1f}" if trace else "?"
+    usage = result.usage
 
     print(
         f"# FinTruth ask  corpus={source}  n_chunks={len(payloads)}  "
         f"hits={len(chunks)}  rerank={not args.no_rerank}  mode={result.mode}  "
-        f"latency_ms={trace.latency_ms:.1f}" if trace else ""
+        f"latency_ms={latency}  tokens={usage.total_tokens} ({usage.source})"
     )
     print(f"Q: {args.question}")
     print()
