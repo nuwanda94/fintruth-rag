@@ -18,9 +18,18 @@ _EXACT_FACT = re.compile(
     r"\b(exact|unit volume|units?|deliveries|how many)\b",
     re.I,
 )
+# Dollar amounts, grouped thousands, or scaled counts — not bare years like 2012.
+_FACT_QUANTITY = re.compile(
+    r"\$\d[\d,]*(?:\.\d+)?"
+    r"|\b\d{1,3}(?:,\d{3})+(?:\.\d+)?"
+    r"|\b\d+(?:\.\d+)?\s*(?:thousand|million|billion)\b",
+    re.I,
+)
 
 DEFAULT_MIN_SCORE = 0.012
 DEFAULT_MIN_OVERLAP = 1
+# Characters on either side of an asked year that must also contain a fact quantity.
+YEAR_QUANTITY_WINDOW = 96
 
 _NAME_TO_TICKER = {
     "TESLA": "TSLA",
@@ -73,6 +82,36 @@ def _overlap_count(question: str, text: str) -> int:
     t = set(_TOKEN.findall(text.lower()))
     stop = {"the", "a", "an", "of", "and", "or", "in", "to", "for", "what", "does", "do"}
     return len((q - stop) & t)
+
+
+def evidence_has_year_near_quantity(
+    chunks: list[RetrievedChunk],
+    years: list[str],
+    *,
+    window: int = YEAR_QUANTITY_WINDOW,
+) -> bool:
+    """True when an asked year sits near a real quantity in the same chunk.
+
+    Filing_date is ignored. A year that only appears in a distant sentence
+    (for example a 2012 store-opening note next to FY2024 revenue) does not
+    count as period evidence for an exact-figure question.
+    """
+    if not years:
+        return True
+    for chunk in chunks:
+        text = chunk.text or ""
+        for year in years:
+            start = 0
+            while True:
+                idx = text.find(year, start)
+                if idx < 0:
+                    break
+                lo = max(0, idx - window)
+                hi = min(len(text), idx + len(year) + window)
+                if _FACT_QUANTITY.search(text[lo:hi]):
+                    return True
+                start = idx + len(year)
+    return False
 
 
 def _evidence_mentions_year(chunks: list[RetrievedChunk], years: list[str]) -> bool:
@@ -149,6 +188,12 @@ def should_refuse(
         years = question_years(question)
         if years and not _evidence_mentions_year(chunks, years):
             return "asked period " + ", ".join(years) + " not present in retrieved evidence"
+        if years and not evidence_has_year_near_quantity(chunks, years):
+            return (
+                "asked period "
+                + ", ".join(years)
+                + " not near a quantity in retrieved evidence"
+            )
         if asks_unit_volume(question) and not evidence_has_unit_quantity(chunks):
             return "asked unit volume not present in retrieved evidence"
     return None

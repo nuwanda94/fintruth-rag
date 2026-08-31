@@ -4,6 +4,15 @@ Packaging notes for interview-max FinTruth RAG. Git tag `v0.1.0` is optional
 (create-tag is not in the connected GitHub tool set); this file is the source
 of truth for what that tag should mean.
 
+## 0.1.7 — 2026-08-31
+
+Exact-figure period evidence must sit next to a quantity (F2 residual).
+
+- `evidence_has_year_near_quantity` rejects a year that only appears far from
+  any dollar / scaled / grouped figure (bare `2012` is not a quantity)
+- `should_refuse` fires after the existing "year in text" check
+- Window is `YEAR_QUANTITY_WINDOW` characters in the same chunk
+
 ## 0.1.6 — 2026-08-31
 
 Latency/token tracking on the grounded path (Week 2 perf residual).
